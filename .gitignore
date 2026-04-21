@@ -88,3 +88,4 @@ models/
 # SQL and database files
 # -----------------------------
 *.sql
+sql/**
