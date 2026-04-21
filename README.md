@@ -17,5 +17,3 @@ Monorepo base para a plataforma de monitoramento visual de caçambas da Vale S.A
 3. Configurar GitHub Actions
 4. Implementar schema MySQL e endpoints
 5. Containerizar serviços
-# vale-vision-platform
-# vale-vision-platform
