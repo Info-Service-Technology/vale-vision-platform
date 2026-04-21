@@ -1,0 +1,38 @@
+PRODUTO VOLUMETRIA RELEASE V1
+
+Base:
+- modelo: volumetria_v2.pt
+- classes: opening / floor_visible
+- pipeline: segmentacao -> volumetria -> status -> dashboard
+
+Resultado do lote inicial:
+- total de imagens: 60
+- ok: 53
+- suspeito: 5
+- invalido: 2
+
+Resultado do lote ampliado:
+- total de imagens: 150
+- ok: 137
+- suspeito: 11
+- invalido: 2
+
+Taxas do lote ampliado:
+- ok: 91,3%
+- suspeito: 7,3%
+- invalido: 1,3%
+
+Motivos remanescentes no lote ampliado:
+- suspeito_opening_area: 10
+- floor_filtrado_colapsou: 2
+- suspeito_generico: 1
+
+Decisão operacional:
+- ok = aceita
+- suspeito = revisar
+- invalido = descartar frame
+
+Conclusão:
+A RELEASE_V1 foi congelada como baseline operacional oficial.
+Ela manteve estabilidade em lote maior de imagens reais, com predominância de frames classificados como OK e baixa taxa de inválidos.
+O principal resíduo operacional atual é relacionado à variação geométrica de opening_area.

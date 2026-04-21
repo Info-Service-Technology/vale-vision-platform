@@ -1,0 +1,41 @@
+{
+  "versao": "1.0",
+  "descricao": "Regras de compatibilidade entre grupo da caçamba e materiais detectados",
+  "grupos": {
+    "madeira": {
+      "material_esperado": "madeira",
+      "aceita": ["madeira"],
+      "contaminantes": ["sucata", "plastico"],
+      "acao_quando_contaminado": "alerta"
+    },
+    "sucata": {
+      "material_esperado": "sucata",
+      "aceita": ["sucata"],
+      "contaminantes": ["madeira", "plastico"],
+      "acao_quando_contaminado": "alerta"
+    },
+    "plastico": {
+      "material_esperado": "plastico",
+      "aceita": ["plastico"],
+      "contaminantes": ["madeira", "sucata"],
+      "acao_quando_contaminado": "alerta"
+    },
+    "sem_grupo": {
+      "material_esperado": "desconhecido",
+      "aceita": [],
+      "contaminantes": [],
+      "acao_quando_contaminado": "revisar"
+    }
+  },
+  "severidade": {
+    "sem_contaminacao": 0,
+    "contaminacao_leve": 1,
+    "contaminacao_confirmada": 2
+  },
+  "saida_padrao": {
+    "contaminantes_detectados": [],
+    "alerta_contaminacao": 0,
+    "tipo_contaminacao": "",
+    "severidade_contaminacao": 0
+  }
+}
