@@ -1,0 +1,20 @@
+vpc_id               = "vpc-xxxxxxxx"
+private_subnet_ids   = ["subnet-private-a", "subnet-private-b"]
+public_subnet_ids    = ["subnet-public-a", "subnet-public-b"]
+ecs_cluster_arn      = "arn:aws:ecs:sa-east-1:123456789012:cluster/hdi-shared"
+ecs_cluster_name     = "hdi-shared"
+alb_https_listener_arn = "arn:aws:elasticloadbalancing:sa-east-1:123456789012:listener/app/hdi-shared/..."
+shared_alb_sg_id     = "sg-xxxxxxxx"
+hosted_zone_id       = "ZXXXXXXXX"
+domain_name          = "example.com"
+backend_host         = "api-valevision.dev.example.com"
+frontend_host        = "valevision.dev.example.com"
+frontend_api_base_url = "https://api-valevision.dev.example.com"
+
+create_dedicated_rds = false
+existing_db_endpoint = "hdi-rds.xxxxxx.sa-east-1.rds.amazonaws.com"
+existing_db_port     = 3306
+existing_db_secret_arn = "arn:aws:secretsmanager:sa-east-1:123456789012:secret:hdi/mysql/valevision"
+
+# if create_dedicated_rds = true
+# db_password = "CHANGE_ME"
