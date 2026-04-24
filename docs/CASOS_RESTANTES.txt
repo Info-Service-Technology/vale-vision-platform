@@ -1,0 +1,29 @@
+CASOS RESTANTES - RELEASE V1
+
+1) 1ae19e7a-6b90-4e4c-a007-03eedb538d9b.jpg
+status: suspeito
+motivo: suspeito_generico
+
+2) 7162ae40-8152-49ec-bb90-01940f1dfdcf.jpg
+status: suspeito
+motivo: suspeito_borda
+
+3) d42ff45a-9076-4e29-8c89-315054113bb2.jpg
+status: suspeito
+motivo: suspeito_borda
+
+4) e6553d38-eb42-4d00-9755-16a752b75d1d.jpg
+status: suspeito
+motivo: suspeito_opening_area
+
+5) madeira_GF0191277_20260306153412794_MD_WITH_TARGET.jpg
+status: suspeito
+motivo: suspeito_opening_area
+
+6) madeira_GF0191277_20260303170216658_MD_WITH_TARGET.jpg
+status: invalido
+motivo: floor_filtrado_colapsou
+
+7) sucata_GF0191272_20260305112929449_MD_WITH_TARGET.jpg
+status: invalido
+motivo: floor_filtrado_colapsou

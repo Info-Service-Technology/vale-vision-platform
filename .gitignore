@@ -1,0 +1,91 @@
+# -----------------------------
+# Python
+# -----------------------------
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# -----------------------------
+# Node / React
+# -----------------------------
+node_modules/
+dist/
+build/
+coverage/
+
+# -----------------------------
+# IDE / OS
+# -----------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# -----------------------------
+# Environment / secrets
+# -----------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# -----------------------------
+# Project data and generated artifacts
+# -----------------------------
+DATASETS/
+MODELOS_TREINADOS/
+input/
+input_ftp/
+output/
+output_erro/
+output_processado/
+RESULTADOS_TESTE_MASSA/
+VALIDACAO_VISUAL/
+review_*/
+auditoria_*/
+validacao_*/
+analise_*/
+baseline_*/
+backup_*/
+logs/
+data/
+*.db
+*.sqlite
+*.sqlite3
+*.csv
+
+# Keep small samples if explicitly placed under samples/
+!samples/
+!samples/**
+
+# -----------------------------
+# Images and generated debug assets
+# -----------------------------
+**/debug/
+**/masks_opening/
+**/masks_floor/
+**/masks_wall/
+*_debug.jpg
+
+# -----------------------------
+# Models (track only selected models via Git LFS if needed)
+# -----------------------------
+models/
+*.pt
+*.onnx
+*.engine
+
+# -----------------------------
+# SQL and database files
+# -----------------------------
+*.sql
+sql/**

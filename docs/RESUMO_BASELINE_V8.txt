@@ -1,0 +1,26 @@
+PRODUTO VOLUMETRIA RELEASE V8 - BASELINE OFICIAL
+
+Data de congelamento:
+18/03/2026
+
+Base:
+- modelo: best_pre_rotulagem_atual.pt (V8 promovido)
+- classes do modelo: floor_visible / wall_visible
+- opening: expected_opening_mask.png fixo
+- pipeline: segmentacao -> volumetria -> status -> dashboard
+
+Resultado do lote validado:
+- total de imagens: 150
+- ok: 150
+- suspeito: 0
+- invalido: 0
+
+Taxas:
+- ok: 100,0%
+- suspeito: 0,0%
+- invalido: 0,0%
+
+Conclusão:
+A RELEASE_V8 foi validada operacionalmente e passa a ser a baseline oficial atual do software de volumetria.
+A principal correção estrutural foi substituir o opening derivado em runtime por um expected_opening_mask.png fixo gerado a partir das máscaras opening da RELEASE_V1.
+A RELEASE_V1 permanece preservada como baseline histórica/backup.
