@@ -1,14 +1,40 @@
-import { Container, Typography } from '@mui/material'
+import { Navigate, Route, Routes } from "react-router-dom";
+import { LoginPage } from "../pages/LoginPage";
+import { DashboardPage } from "../pages/DashboardPage";
 
-export default function App() {
+// NOVAS PÁGINAS (vamos criar depois)
+import { RegisterPage } from "../pages/RegisterPage";
+import { ForgotPasswordPage } from "../pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "../pages/ResetPasswordPage";
+
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const token = localStorage.getItem("vale_token");
+  if (!token) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+export function App() {
   return (
-    <Container sx={{ py: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Vale Vision Platform
-      </Typography>
-      <Typography>
-        Base inicial do frontend React + Material UI.
-      </Typography>
-    </Container>
-  )
+    <Routes>
+
+      {/* públicas */}
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+      {/* protegidas */}
+      <Route
+        path="/dashboard"
+        element={
+          <RequireAuth>
+            <DashboardPage />
+          </RequireAuth>
+        }
+      />
+
+      {/* fallback */}
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
+  );
 }
