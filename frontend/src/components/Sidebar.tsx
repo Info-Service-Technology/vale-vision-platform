@@ -18,6 +18,7 @@ import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import HistoryIcon from "@mui/icons-material/History";
 
+import { useLocation, useNavigate } from "react-router-dom";
 import logo from "../assets/Logo_Sensx.png";
 
 interface Props {
@@ -26,21 +27,51 @@ interface Props {
 }
 
 export function Sidebar({ role, onLogout }: Props) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const isSuperAdmin = role === "super-admin";
 
   const tenantMenu = [
-    { label: "Painel", icon: <DashboardIcon /> },
-    { label: "Caçambas", icon: <DeleteIcon /> },
-    { label: "Perfil", icon: <PersonIcon /> },
-    { label: "Sistema", icon: <SettingsIcon /> },
-    { label: "Ajuda", icon: <HelpOutlineIcon /> },
+    { label: "Painel", icon: <DashboardIcon />, path: "/dashboard" },
+    { label: "Caçambas", icon: <DeleteIcon />, path: "/cacambas" },
+    { label: "Perfil", icon: <PersonIcon />, path: "/perfil" },
+    { label: "Sistema", icon: <SettingsIcon />, path: "/sistema" },
+    { label: "Ajuda", icon: <HelpOutlineIcon />, path: "/ajuda" },
   ];
 
-  const sensxAdminMenu = [
-    { label: "Administração de usuários", icon: <AdminPanelSettingsIcon /> },
-    { label: "Billing", icon: <ReceiptIcon /> },
-    { label: "Auditoria", icon: <HistoryIcon /> },
+  const adminMenu = [
+    { label: "Administração de usuários", icon: <AdminPanelSettingsIcon />, path: "/admin/users" },
+    { label: "Billing", icon: <ReceiptIcon />, path: "/billing" },
+    { label: "Auditoria", icon: <HistoryIcon />, path: "/audit" },
   ];
+
+  function renderItem(item: { label: string; icon: React.ReactNode; path: string }) {
+    const selected = location.pathname === item.path;
+
+    return (
+      <ListItemButton
+        key={item.label}
+        selected={selected}
+        onClick={() => navigate(item.path)}
+        sx={{
+          mx: 1,
+          mb: 0.5,
+          borderRadius: 2,
+          "&.Mui-selected": {
+            backgroundColor: "primary.main",
+            color: "primary.contrastText",
+            "& .MuiListItemIcon-root": {
+              color: "primary.contrastText",
+            },
+          },
+        }}
+      >
+        <ListItemIcon>{item.icon}</ListItemIcon>
+        <ListItemText primary={item.label} />
+      </ListItemButton>
+    );
+  }
 
   return (
     <Drawer
@@ -57,14 +88,11 @@ export function Sidebar({ role, onLogout }: Props) {
     >
       <Box
         sx={{
-          width: "100%",
           height: 96,
           px: 2,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          overflow: "visible",
-          flexShrink: 0,
         }}
       >
         <Box
@@ -75,33 +103,21 @@ export function Sidebar({ role, onLogout }: Props) {
             width: "100%",
             height: "auto",
             objectFit: "contain",
-            display: "block",
           }}
         />
       </Box>
 
       <Divider />
 
-      <List>
-        {tenantMenu.map((item) => (
-          <ListItemButton key={item.label}>
-            <ListItemIcon>{item.icon}</ListItemIcon>
-            <ListItemText primary={item.label} />
-          </ListItemButton>
-        ))}
+      <List sx={{ py: 2 }}>
+        {tenantMenu.map(renderItem)}
       </List>
 
       {isSuperAdmin && (
         <>
           <Divider />
-
-          <List>
-            {sensxAdminMenu.map((item) => (
-              <ListItemButton key={item.label}>
-                <ListItemIcon>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.label} />
-              </ListItemButton>
-            ))}
+          <List sx={{ py: 2 }}>
+            {adminMenu.map(renderItem)}
           </List>
         </>
       )}
@@ -110,8 +126,8 @@ export function Sidebar({ role, onLogout }: Props) {
 
       <Divider />
 
-      <List>
-        <ListItemButton onClick={onLogout}>
+      <List sx={{ py: 1 }}>
+        <ListItemButton onClick={onLogout} sx={{ mx: 1, borderRadius: 2 }}>
           <ListItemIcon>
             <LogoutIcon />
           </ListItemIcon>

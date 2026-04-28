@@ -7,6 +7,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.security import get_current_user
 from app.db.session import SessionLocal
 from app.models.models import Event
 
@@ -23,6 +24,16 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def apply_tenant_scope(query, user: dict):
+    role = user.get("role")
+    tenant_id = user.get("tenant_id")
+
+    if role == "super-admin":
+        return query
+
+    return query.filter(Event.tenant_id == tenant_id)
 
 
 def serialize_event(event: Event):
@@ -46,7 +57,9 @@ def serialize_event(event: Event):
         "s3_bucket": event.s3_bucket,
         "s3_key_raw": event.s3_key_raw,
         "s3_key_debug": event.s3_key_debug,
-        "image_received_at": event.image_received_at.isoformat() if event.image_received_at else None,
+        "image_received_at": event.image_received_at.isoformat()
+        if event.image_received_at
+        else None,
         "processing_status": event.processing_status,
     }
 
@@ -59,8 +72,10 @@ def list_events(
     search: str | None = None,
     active_only: bool = True,
     db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user),
 ):
     query = db.query(Event)
+    query = apply_tenant_scope(query, user)
 
     if active_only:
         query = query.filter(Event.alerta_contaminacao == 1)
@@ -112,8 +127,10 @@ def list_events(
 def get_events_metrics(
     container: str | None = None,
     db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user),
 ):
     query = db.query(Event)
+    query = apply_tenant_scope(query, user)
 
     if container and container != "all":
         query = query.filter(
@@ -127,15 +144,10 @@ def get_events_metrics(
         )
 
     total_events = query.count()
-
     ok_events = query.filter(Event.status == "ok").count()
-
     active_contaminations = query.filter(Event.alerta_contaminacao == 1).count()
-
     avg_fill = query.with_entities(func.avg(Event.fill_percent)).scalar() or 0
-
     over_threshold = query.filter(Event.fill_percent >= 75).count()
-
     last_event = query.order_by(Event.id.desc()).first()
 
     return {
@@ -145,7 +157,9 @@ def get_events_metrics(
         "avg_fill_percent": float(avg_fill),
         "over_threshold": over_threshold,
         "system_online": True,
-        "last_frame_at": last_event.image_received_at.isoformat() if last_event and last_event.image_received_at else None,
+        "last_frame_at": last_event.image_received_at.isoformat()
+        if last_event and last_event.image_received_at
+        else None,
     }
 
 
@@ -153,14 +167,21 @@ def get_events_metrics(
 def get_event_image_url(
     event_id: int,
     db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user),
 ):
-    event = db.query(Event).filter(Event.id == event_id).first()
+    query = db.query(Event).filter(Event.id == event_id)
+    query = apply_tenant_scope(query, user)
+
+    event = query.first()
 
     if not event:
         raise HTTPException(status_code=404, detail="Evento não encontrado")
 
     if not event.s3_bucket or not event.s3_key_raw:
-        raise HTTPException(status_code=404, detail="Imagem S3 não encontrada para este evento")
+        raise HTTPException(
+            status_code=404,
+            detail="Imagem S3 não encontrada para este evento",
+        )
 
     s3 = boto3.client("s3", region_name=settings.aws_region)
 
@@ -181,8 +202,12 @@ def resolve_event(
     event_id: int,
     payload: ResolveEventPayload,
     db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user),
 ):
-    event = db.query(Event).filter(Event.id == event_id).first()
+    query = db.query(Event).filter(Event.id == event_id)
+    query = apply_tenant_scope(query, user)
+
+    event = query.first()
 
     if not event:
         raise HTTPException(status_code=404, detail="Evento não encontrado")
