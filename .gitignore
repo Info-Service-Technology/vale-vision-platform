@@ -88,4 +88,5 @@ models/
 # SQL and database files
 # -----------------------------
 *.sql
-sql/**
+sql/***.deb
+*.deb
