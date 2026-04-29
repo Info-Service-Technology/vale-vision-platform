@@ -20,6 +20,7 @@ export interface VisionEvent {
   image_received_at?: string | null;
   processing_status?: string | null;
   resolved_at?: string | null;
+  resolved_reason?: string | null;
 }
 
 export interface EventsResponse {
@@ -37,4 +38,8 @@ export interface MetricsResponse {
   over_threshold: number;
   system_online: boolean;
   last_frame_at?: string | null;
+  resolved_count: number;
+  backlog: number;
+  resolution_rate: number;
+  avg_resolution_minutes: number;
 }

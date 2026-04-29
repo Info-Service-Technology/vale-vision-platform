@@ -1,5 +1,6 @@
 import { Table, TableBody, TableCell, TableHead, TableRow, Button, Chip } from "@mui/material";
 import ImageIcon from "@mui/icons-material/Image";
+import { RemoveRedEye } from "@mui/icons-material";
 
 export function EventsTable({ rows, onOpenImage, t }: any) {
   return (
@@ -27,8 +28,13 @@ export function EventsTable({ rows, onOpenImage, t }: any) {
             </TableCell>
 
             <TableCell>
-              <Button startIcon={<ImageIcon />} onClick={() => onOpenImage(event)}>
-                {t("viewImage")}
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<ImageIcon />}
+                onClick={() => onOpenImage(event)}
+              >
+                <RemoveRedEye fontSize="small" color="secondary" />
               </Button>
             </TableCell>
           </TableRow>

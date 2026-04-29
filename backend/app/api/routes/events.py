@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import boto3
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, text
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -147,6 +147,35 @@ def get_events_metrics(
     over_threshold = query.filter(Event.fill_percent >= 75).count()
     last_event = query.order_by(Event.id.desc()).first()
 
+    resolved_count = query.filter(Event.status == "resolved").count()
+
+    backlog = query.filter(Event.status != "resolved").count()
+
+    resolution_rate = (
+        (resolved_count / total_events) * 100
+        if total_events > 0
+        else 0
+    )
+
+    avg_resolution_minutes = (
+        query.filter(
+            Event.status == "resolved",
+            Event.resolved_at.isnot(None),
+            Event.created_at.isnot(None),
+        )
+        .with_entities(
+            func.avg(
+                func.timestampdiff(
+                    text("MINUTE"),
+                    Event.created_at,
+                    Event.resolved_at,
+                )
+            )
+        )
+        .scalar()
+        or 0
+    )
+
     return {
         "total_events": total_events,
         "ok_events": ok_events,
@@ -154,6 +183,10 @@ def get_events_metrics(
         "avg_fill_percent": float(avg_fill),
         "over_threshold": over_threshold,
         "system_online": True,
+        "resolved_count": resolved_count,
+        "backlog": backlog,
+        "resolution_rate": float(resolution_rate),
+        "avg_resolution_minutes": float(avg_resolution_minutes),
         "last_frame_at": last_event.image_received_at.isoformat()
         if last_event and last_event.image_received_at
         else None,
@@ -188,7 +221,7 @@ def get_event_image_url(
             "Bucket": event.s3_bucket,
             "Key": event.s3_key_raw,
         },
-        ExpiresIn=3600,
+        ExpiresIn=600,
     )
 
     return {"url": url}

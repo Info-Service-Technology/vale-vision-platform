@@ -51,7 +51,7 @@ export function CacambasPage() {
   const { t, lang, setLang } = useLocale();
   const [success, setSuccess] = useState("");
   const [resolving, setResolving] = useState(false);
-
+  const [imageUrlCache, setImageUrlCache] = useState<Record<number, string>>({});
 
   const user = getUser();
 
@@ -91,17 +91,32 @@ export function CacambasPage() {
 
   
   async function openDetails(event: VisionEvent) {
-    setSelectedEvent(event);
-    setImageUrl(null);
-    setImageLoading(true);
+        setSelectedEvent(event);
 
-    try {
-      const url = await fetchImageUrl(event.id);
-      setImageUrl(url);
-    } finally {
-      setImageLoading(false);
+        const cachedUrl = imageUrlCache[event.id];
+
+        if (cachedUrl) {
+            setImageUrl(cachedUrl);
+            return;
+        }
+
+        setImageUrl(null);
+        setImageLoading(true);
+
+        try {
+            const url = await fetchImageUrl(event.id);
+
+            setImageUrl(url);
+            setImageUrlCache((prev) => ({
+            ...prev,
+            [event.id]: url,
+            }));
+        } catch {
+            setImageUrl(null);
+        } finally {
+            setImageLoading(false);
+        }
     }
-  }
 
   async function handleResolve() {
     setResolving(true);
@@ -273,7 +288,11 @@ export function CacambasPage() {
       >
         <DialogTitle>Detalhes do evento</DialogTitle>
 
-        <DialogContent>
+        <DialogContent
+            sx={{
+                overflow: "visible",
+            }}
+            >
           {selectedEvent && (
             <Stack spacing={2}>
               <Typography fontWeight={800}>
@@ -289,7 +308,7 @@ export function CacambasPage() {
                   alt="Imagem do evento"
                   sx={{
                     width: "100%",
-                    maxHeight: 420,
+                    maxHeight: 300,
                     objectFit: "contain",
                     borderRadius: 2,
                     border: "1px solid rgba(15,23,42,0.12)",
@@ -299,7 +318,13 @@ export function CacambasPage() {
                 <Alert severity="warning">Imagem não disponível.</Alert>
               )}
 
-              <Stack spacing={0.5}>
+              <Box
+                sx={{
+                    display: "grid",
+                    gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+                    gap: 1,
+                }}
+                >
                 <Typography>
                   <strong>Caçamba:</strong> {selectedEvent.cacamba_esperada || "-"}
                 </Typography>
@@ -315,7 +340,7 @@ export function CacambasPage() {
                 <Typography>
                   <strong>Ocupação:</strong> {(selectedEvent.fill_percent ?? 0).toFixed(1)}%
                 </Typography>
-              </Stack>
+              </Box>
             </Stack>
           )}
         </DialogContent>
