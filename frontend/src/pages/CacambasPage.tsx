@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  CircularProgress,
   Alert,
   Box,
   Button,
@@ -12,6 +13,7 @@ import {
   MenuItem,
   Paper,
   Select,
+  Snackbar,
   Stack,
   Table,
   TableBody,
@@ -22,6 +24,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import ImageIcon from "@mui/icons-material/Image";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { useNavigate } from "react-router-dom";
@@ -32,6 +35,7 @@ import { Header } from "../components/Header";
 import { useLocale } from "../context/LocaleContext";
 import { fetchEvents, fetchImageUrl, fetchMetrics, resolveEvent } from "../services/api";
 import { VisionEvent } from "../types/events";
+import { RemoveRedEye } from "@mui/icons-material";
 
 function getUser() {
   try {
@@ -45,6 +49,9 @@ export function CacambasPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { t, lang, setLang } = useLocale();
+  const [success, setSuccess] = useState("");
+  const [resolving, setResolving] = useState(false);
+
 
   const user = getUser();
 
@@ -82,6 +89,7 @@ export function CacambasPage() {
     navigate("/login");
   }
 
+  
   async function openDetails(event: VisionEvent) {
     setSelectedEvent(event);
     setImageUrl(null);
@@ -96,10 +104,12 @@ export function CacambasPage() {
   }
 
   async function handleResolve() {
+    setResolving(true);
     if (!selectedEvent) return;
 
     await resolveEvent(selectedEvent.id, "Resolvido manualmente pela operação");
-
+    setSuccess("Evento resolvido com sucesso");
+    setResolving(false);
     setSelectedEvent(null);
     setImageUrl(null);
 
@@ -138,7 +148,7 @@ export function CacambasPage() {
                 Caçambas
               </Typography>
               <Typography color="text.secondary">
-                Eventos ativos de contaminação, ocupação e imagens associadas.
+                {total} Eventos ativos de contaminação, ocupação e imagens associadas.
               </Typography>
             </Box>
 
@@ -177,17 +187,20 @@ export function CacambasPage() {
                 </Alert>
               )}
 
+                <Snackbar open={!!success} autoHideDuration={3000} onClose={() => setSuccess("")}>
+                <Alert severity="success">{success}</Alert>
+                </Snackbar>
               <Table size="small">
                 <TableHead>
-                  <TableRow>
-                    <TableCell>Data</TableCell>
-                    <TableCell>Hora</TableCell>
-                    <TableCell>Caçamba</TableCell>
-                    <TableCell>Material esperado</TableCell>
-                    <TableCell>Detectado</TableCell>
-                    <TableCell>Contaminante</TableCell>
-                    <TableCell>Ocupação</TableCell>
-                    <TableCell>Status</TableCell>
+                  <TableRow hover>
+                    <TableCell sx={{ fontWeight: 600 }}>Data</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Hora</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Caçamba</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Material esperado</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Detectado</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Contaminante</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Ocupação</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                     <TableCell align="right">Ações</TableCell>
                   </TableRow>
                 </TableHead>
@@ -199,20 +212,20 @@ export function CacambasPage() {
 
                     return (
                       <TableRow key={event.id} hover>
-                        <TableCell>{event.data_ref || "-"}</TableCell>
-                        <TableCell>{event.hora_ref || "-"}</TableCell>
-                        <TableCell>{event.cacamba_esperada || "-"}</TableCell>
-                        <TableCell>{event.material_esperado || "-"}</TableCell>
-                        <TableCell>{event.materiais_detectados || "-"}</TableCell>
-                        <TableCell>{event.contaminantes_detectados || "-"}</TableCell>
-                        <TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>{event.data_ref || "-"}</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>{event.hora_ref || "-"}</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>{event.cacamba_esperada || "-"}</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>{event.material_esperado || "-"}</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>{event.materiais_detectados || "-"}</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>{event.contaminantes_detectados || "-"}</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>
                           <Chip
                             size="small"
                             color={fill >= 75 ? "warning" : "default"}
                             label={`${fill.toFixed(1)}%`}
                           />
                         </TableCell>
-                        <TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>
                           <Chip
                             size="small"
                             color={contaminated ? "error" : "success"}
@@ -226,7 +239,7 @@ export function CacambasPage() {
                             startIcon={<ImageIcon />}
                             onClick={() => openDetails(event)}
                           >
-                            Ver imagem
+                            <RemoveRedEye fontSize="small" color="secondary" />
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -268,11 +281,11 @@ export function CacambasPage() {
               </Typography>
 
               {imageLoading ? (
-                <Typography>Carregando imagem...</Typography>
-              ) : imageUrl ? (
-                <Box
-                  component="img"
-                  src={imageUrl}
+                <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+                    <CircularProgress />
+                </Box>
+                ) : imageUrl ? (
+                <Box component="img" src={imageUrl}
                   alt="Imagem do evento"
                   sx={{
                     width: "100%",
@@ -316,6 +329,7 @@ export function CacambasPage() {
               color="success"
               startIcon={<CheckCircleIcon />}
               onClick={handleResolve}
+              disabled={resolving}
             >
               Resolver
             </Button>

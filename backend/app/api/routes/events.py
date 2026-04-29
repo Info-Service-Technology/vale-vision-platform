@@ -1,5 +1,5 @@
 from math import ceil
-
+from datetime import datetime, timezone
 import boto3
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -35,6 +35,21 @@ def apply_tenant_scope(query, user: dict):
 
     return query.filter(Event.tenant_id == tenant_id)
 
+
+def apply_material_filter(query, material: str | None):
+    if not material or material == "all":
+        return query
+
+    material = material.lower().strip()
+
+    return query.filter(
+        or_(
+            Event.s3_key_raw.ilike(f"%/{material}_%"),
+            Event.s3_key_raw.ilike(f"%/{material}-%"),
+            Event.file_path.ilike(f"{material}_%"),
+            Event.file_path.ilike(f"{material}-%"),
+        )
+    )
 
 def serialize_event(event: Event):
     return {
@@ -78,18 +93,9 @@ def list_events(
     query = apply_tenant_scope(query, user)
 
     if active_only:
-        query = query.filter(Event.alerta_contaminacao == 1)
+        query = query.filter(Event.status != "resolved")
 
-    if container and container != "all":
-        query = query.filter(
-            or_(
-                Event.cacamba_esperada == container,
-                Event.material_esperado == container,
-                Event.tipo_contaminacao == container,
-                Event.file_path.like(f"%{container}%"),
-                Event.s3_key_raw.like(f"%{container}%"),
-            )
-        )
+    query = apply_material_filter(query, container)
 
     if search:
         like = f"%{search}%"
@@ -132,16 +138,7 @@ def get_events_metrics(
     query = db.query(Event)
     query = apply_tenant_scope(query, user)
 
-    if container and container != "all":
-        query = query.filter(
-            or_(
-                Event.cacamba_esperada == container,
-                Event.material_esperado == container,
-                Event.tipo_contaminacao == container,
-                Event.file_path.like(f"%{container}%"),
-                Event.s3_key_raw.like(f"%{container}%"),
-            )
-        )
+    query = apply_material_filter(query, container)
 
     total_events = query.count()
     ok_events = query.filter(Event.status == "ok").count()
@@ -212,7 +209,12 @@ def resolve_event(
     if not event:
         raise HTTPException(status_code=404, detail="Evento não encontrado")
 
-    db.delete(event)
+    event.status = "resolved"
+    event.alerta_contaminacao = 0
+    event.resolved_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    event.resolved_by = user.get("user_id")
+    event.resolved_reason = payload.reason or "Resolvido manualmente pela operação"
+
     db.commit()
 
     return {
