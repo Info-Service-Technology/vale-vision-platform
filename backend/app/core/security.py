@@ -1,12 +1,15 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from jose import jwt
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from app.core.config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def hash_password(password: str) -> str:
@@ -35,3 +38,20 @@ def create_access_token(subject: str, claims: dict[str, Any] | None = None) -> s
         settings.jwt_secret_key,
         algorithm=settings.jwt_algorithm,
     )
+
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> dict[str, Any]:
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token não informado")
+
+    try:
+        payload = jwt.decode(
+            credentials.credentials,
+            settings.jwt_secret_key,
+            algorithms=[settings.jwt_algorithm],
+        )
+        return payload
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Token inválido ou expirado")

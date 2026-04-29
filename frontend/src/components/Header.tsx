@@ -54,6 +54,15 @@ function getUserRole() {
   }
 }
 
+function getTenantName() {
+  try {
+    const user = JSON.parse(localStorage.getItem("vale_user") || "{}");
+    return user.tenant_name || "Platform";
+  } catch {
+    return "Platform";
+  }
+}
+
 export function Header({
   userName,
   systemOnline,
@@ -67,7 +76,7 @@ export function Header({
   const open = Boolean(anchorEl);
   const userEmail = getUserEmail();
   const userRole = getUserRole();
-
+  const tenantName = getTenantName();
   return (
     <AppBar
       position="fixed"
@@ -85,7 +94,7 @@ export function Header({
       <Toolbar sx={{ gap: 2, minHeight: 72 }}>
         <Box sx={{ flexGrow: 1 }}>
           <Typography variant="h6" fontWeight={800}>
-            {t("appTitle")}
+            {tenantName} {t("appTitle")}
           </Typography>
 
           <Typography variant="body2" color="text.secondary">

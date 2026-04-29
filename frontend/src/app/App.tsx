@@ -6,6 +6,7 @@ import { DashboardPage } from "../pages/DashboardPage";
 import { RegisterPage } from "../pages/RegisterPage";
 import { ForgotPasswordPage } from "../pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "../pages/ResetPasswordPage";
+import { CacambasPage } from "../pages/CacambasPage";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem("vale_token");
@@ -32,6 +33,8 @@ export function App() {
           </RequireAuth>
         }
       />
+      
+      <Route path="/cacambas" element={<CacambasPage />} />
 
       {/* fallback */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
