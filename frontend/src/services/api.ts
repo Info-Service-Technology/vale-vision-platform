@@ -37,3 +37,15 @@ export async function fetchCurrentTenant() {
 
   return data;
 }
+
+export async function fetchResolvedEvents(params: {
+  page: number;
+  page_size: number;
+  search?: string;
+}) {
+  const { data } = await api.get<EventsResponse>("/events/resolved", {
+    params,
+  });
+
+  return data;
+}
