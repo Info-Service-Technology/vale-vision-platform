@@ -222,3 +222,45 @@ def resolve_event(
         "message": "Evento removido da lista",
         "event_id": event_id,
     }
+
+@router.get("/events/resolved")
+def list_resolved_events(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    search: str | None = None,
+    db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user),
+):
+    query = db.query(Event)
+    query = apply_tenant_scope(query, user)
+
+    query = query.filter(Event.status == "resolved")
+
+    if search:
+        like = f"%{search}%"
+        query = query.filter(
+            or_(
+                Event.file_path.like(like),
+                Event.s3_key_raw.like(like),
+                Event.resolved_reason.like(like),
+                Event.materiais_detectados.like(like),
+                Event.contaminantes_detectados.like(like),
+            )
+        )
+
+    total = query.count()
+
+    rows = (
+        query.order_by(Event.resolved_at.desc(), Event.id.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+
+    return {
+        "items": [serialize_event(row) for row in rows],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": ceil(total / page_size) if page_size else 0,
+    }
