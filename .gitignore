@@ -90,3 +90,21 @@ models/
 *.sql
 sql/***.deb
 *.deb
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraform.lock.hcl
+
+# Artifacts
+*.zip
+*.tar
+*.tar.gz
+*.onnx
+*.pt
+*.pth
+*.weights
+data/
+uploads/

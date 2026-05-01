@@ -1,0 +1,58 @@
+aws_region              = "sa-east-1"
+environment             = "prd"
+name_prefix             = "sansx-vision-prd"
+
+# Shared platform
+vpc_id                  = "vpc-xxxxxxxx"
+private_subnet_ids      = ["subnet-aaaa", "subnet-bbbb"]
+public_subnet_ids       = ["subnet-cccc", "subnet-dddd"]
+create_ecs_cluster      = true
+# If create_ecs_cluster = false, fill ecs_cluster_arn and ecs_cluster_name
+# ecs_cluster_arn       = "arn:aws:ecs:sa-east-1:123456789012:cluster/sansx-shared-prd"
+# ecs_cluster_name      = "sansx-shared-prd"
+alb_https_listener_arn  = "arn:aws:elasticloadbalancing:sa-east-1:123456789012:listener/app/shared-alb/xxx/yyy"
+shared_alb_sg_id        = "sg-xxxxxxxx"
+primary_hosted_zone_id  = "ZPRIMARY123"
+secondary_hosted_zone_id = "ZSECONDARY456"
+
+# Domains
+frontend_host = "sensxvisionplatform.com"
+backend_host  = "api.sensxvisionplatform.com"
+frontend_redirect_hosts = [
+  "www.sensxvisionplatform.com",
+  "sensxvisionplatform.com.br",
+  "www.sensxvisionplatform.com.br"
+]
+
+frontend_dns_records = [
+  { zone_id = "ZPRIMARY123", name = "www.sensxvisionplatform.com" },
+  { zone_id = "ZSECONDARY456", name = "sensxvisionplatform.com.br" },
+  { zone_id = "ZSECONDARY456", name = "www.sensxvisionplatform.com.br" }
+]
+
+backend_dns_records = []
+
+# DB strategy
+create_dedicated_rds  = true
+db_name               = "sansxvision"
+db_username           = "sansxvision_app"
+# db_password: prefer passing by environment variable TF_VAR_db_password
+
+# SMTP and transactional email
+create_smtp_secret    = true
+# smtp_password: prefer passing by environment variable TF_VAR_smtp_password
+smtp_username         = "mauroslucios@gmail.com"
+email_from_address    = "mauroslucios@gmail.com"
+email_reply_to        = "mauroslucios@gmail.com"
+email_support_address = "mauroslucios@gmail.com"
+frontend_public_url   = "https://sensxvisionplatform.com"
+api_public_url        = "https://api.sensxvisionplatform.com"
+
+# ECS image tags
+backend_image_tag     = "latest"
+inference_image_tag   = "latest"
+
+# GitHub OIDC
+enable_github_oidc    = true
+github_org            = "CHANGE-ME"
+github_repo           = "vale-vision-platform"

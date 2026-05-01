@@ -19,6 +19,9 @@ export function RegisterPage() {
   const navigate = useNavigate();
 
   const [name, setName] = useState("");
+  const [tenantSlug, setTenantSlug] = useState(
+    () => localStorage.getItem("vale_tenant_slug") || ""
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -41,13 +44,15 @@ export function RegisterPage() {
         name,
         email,
         password,
+        tenant_slug: tenantSlug.trim(),
       });
 
-      setSuccess("Usuário criado com sucesso!");
+      localStorage.setItem("vale_tenant_slug", tenantSlug.trim());
+      setSuccess("Usuário criado com sucesso para a mineradora informada.");
 
       setTimeout(() => navigate("/login"), 1200);
     } catch (err: any) {
-      setError(err?.response?.data?.error || "Erro ao registrar usuário.");
+      setError(err?.response?.data?.detail || "Erro ao registrar usuário.");
     }
   }
 
@@ -86,6 +91,14 @@ export function RegisterPage() {
                 sx={{ width: "100%" }}
               >
                 <Stack spacing={2}>
+                  <TextField
+                    label="Slug da mineradora"
+                    value={tenantSlug}
+                    onChange={(e) => setTenantSlug(e.target.value)}
+                    fullWidth
+                    required
+                  />
+
                   <TextField
                     label="Nome"
                     value={name}

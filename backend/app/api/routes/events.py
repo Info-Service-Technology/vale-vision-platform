@@ -3,13 +3,14 @@ from datetime import datetime, timezone
 import boto3
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, text
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.security import get_current_user
 from app.db.session import SessionLocal
-from app.models.models import Event
+from app.models.models import Event, Tenant
+from app.services.audit import write_audit_log
 
 router = APIRouter(tags=["events"])
 
@@ -34,6 +35,31 @@ def apply_tenant_scope(query, user: dict):
         return query
 
     return query.filter(Event.tenant_id == tenant_id)
+
+
+def ensure_user_can_resolve(user: dict, db: Session):
+    if user.get("role") == "viewer":
+        raise HTTPException(
+            status_code=403,
+            detail="Usuário sem permissão para resolver monitoramentos manualmente",
+        )
+
+    if user.get("role") == "super-admin":
+        return
+
+    tenant_id = user.get("tenant_id")
+    if not tenant_id:
+        raise HTTPException(status_code=400, detail="Usuário sem tenant vinculado")
+
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant não encontrado")
+
+    if (tenant.billing_status or "active") in {"suspended_read_only", "suspended_full", "terminated"}:
+        raise HTTPException(
+            status_code=403,
+            detail="Este tenant está com restrição operacional por billing",
+        )
 
 
 def apply_material_filter(query, material: str | None):
@@ -147,6 +173,35 @@ def get_events_metrics(
     over_threshold = query.filter(Event.fill_percent >= 75).count()
     last_event = query.order_by(Event.id.desc()).first()
 
+    resolved_count = query.filter(Event.status == "resolved").count()
+
+    backlog = query.filter(Event.status != "resolved").count()
+
+    resolution_rate = (
+        (resolved_count / total_events) * 100
+        if total_events > 0
+        else 0
+    )
+
+    avg_resolution_minutes = (
+        query.filter(
+            Event.status == "resolved",
+            Event.resolved_at.isnot(None),
+            Event.created_at.isnot(None),
+        )
+        .with_entities(
+            func.avg(
+                func.timestampdiff(
+                    text("MINUTE"),
+                    Event.created_at,
+                    Event.resolved_at,
+                )
+            )
+        )
+        .scalar()
+        or 0
+    )
+
     return {
         "total_events": total_events,
         "ok_events": ok_events,
@@ -154,6 +209,10 @@ def get_events_metrics(
         "avg_fill_percent": float(avg_fill),
         "over_threshold": over_threshold,
         "system_online": True,
+        "resolved_count": resolved_count,
+        "backlog": backlog,
+        "resolution_rate": float(resolution_rate),
+        "avg_resolution_minutes": float(avg_resolution_minutes),
         "last_frame_at": last_event.image_received_at.isoformat()
         if last_event and last_event.image_received_at
         else None,
@@ -188,7 +247,7 @@ def get_event_image_url(
             "Bucket": event.s3_bucket,
             "Key": event.s3_key_raw,
         },
-        ExpiresIn=3600,
+        ExpiresIn=600,
     )
 
     return {"url": url}
@@ -201,6 +260,8 @@ def resolve_event(
     db: Session = Depends(get_db),
     user: dict = Depends(get_current_user),
 ):
+    ensure_user_can_resolve(user, db)
+
     query = db.query(Event).filter(Event.id == event_id)
     query = apply_tenant_scope(query, user)
 
@@ -216,6 +277,18 @@ def resolve_event(
     event.resolved_reason = payload.reason or "Resolvido manualmente pela operação"
 
     db.commit()
+
+    write_audit_log(
+        db,
+        user_id=user.get("user_id"),
+        user_email=user.get("email"),
+        tenant_id=user.get("tenant_id"),
+        action="monitoring_resolved",
+        method="PATCH",
+        endpoint=f"/api/events/{event_id}/resolve",
+        status=200,
+        details={"event_id": event_id, "reason": event.resolved_reason},
+    )
 
     return {
         "status": "ok",

@@ -1,7 +1,14 @@
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from "@mui/material";
 import { useState } from "react";
 import { useLocale } from "../context/LocaleContext";
-interface Props { open: boolean; eventId?: number | null; onClose: () => void; onConfirm: (reason: string) => Promise<void>; }
+
+interface Props {
+  open: boolean;
+  eventId?: number | null;
+  onClose: () => void;
+  onConfirm: (reason: string) => Promise<void> | void;
+}
+
 export function ResolveDialog({ open, eventId, onClose, onConfirm }: Props) {
   const { t } = useLocale(); const [reason, setReason] = useState(""); const [loading, setLoading] = useState(false);
   async function handleConfirm() { setLoading(true); try { await onConfirm(reason || "Contaminante removido fisicamente da caçamba"); setReason(""); onClose(); } finally { setLoading(false); } }

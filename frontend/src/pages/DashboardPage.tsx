@@ -3,8 +3,6 @@ import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
   Container,
   Paper,
   Stack,
@@ -12,11 +10,9 @@ import {
   Tabs,
   TablePagination,
   TextField,
-  Typography,
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Sidebar } from "../components/Sidebar";
 import { Header } from "../components/Header";
@@ -24,51 +20,30 @@ import { MetricsGrid } from "../components/MetricsGrid";
 import { EventsTable } from "../features/events/EventsTable";
 import { ImageModal } from "../components/ImageModal";
 import { ResolveDialog } from "../components/ResolveDialog";
+import { BillingStatusBanner } from "../components/BillingStatusBanner";
+
 import { useLocale } from "../context/LocaleContext";
+import { useAuth } from "../context/AuthContext";
 import {
   fetchEvents,
   fetchImageUrl,
   fetchMetrics,
   resolveEvent,
 } from "../services/api";
+
 import { VisionEvent } from "../types/events";
 
 const containers = [
-  {
-    key: "all",
-    labelKey: "all",
-    filter: undefined,
-  },
-  {
-    key: "plastico",
-    labelKey: "plastic",
-    filter: "plastico",
-  },
-  {
-    key: "madeira",
-    labelKey: "wood",
-    filter: "madeira",
-  },
-  {
-    key: "sucata",
-    labelKey: "scrap",
-    filter: "sucata",
-  },
+  { key: "all", labelKey: "all", filter: undefined },
+  { key: "plastico", labelKey: "plastic", filter: "plastico" },
+  { key: "madeira", labelKey: "wood", filter: "madeira" },
+  { key: "sucata", labelKey: "scrap", filter: "sucata" },
 ];
-
-function getUserName() {
-  try {
-    const user = JSON.parse(localStorage.getItem("vale_user") || "{}");
-    return user.name || user.email || "usuário";
-  } catch {
-    return "usuário";
-  }
-}
 
 export function DashboardPage() {
   const { t, lang, setLang } = useLocale();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user, logout } = useAuth();
 
   const [tab, setTab] = useState("all");
   const [page, setPage] = useState(0);
@@ -80,19 +55,15 @@ export function DashboardPage() {
     event?: VisionEvent | null;
     url?: string | null;
     loading?: boolean;
-  }>({
-    open: false,
-  });
+  }>({ open: false });
 
   const [resolveDialog, setResolveDialog] = useState<{
     open: boolean;
     event?: VisionEvent | null;
-  }>({
-    open: false,
-  });
+  }>({ open: false });
 
   const containerFilter = useMemo(() => {
-    return containers.find((container) => container.key === tab)?.filter;
+    return containers.find((c) => c.key === tab)?.filter;
   }, [tab]);
 
   const metricsQuery = useQuery({
@@ -123,18 +94,8 @@ export function DashboardPage() {
     },
   });
 
-  function logout() {
-    localStorage.removeItem("vale_token");
-    localStorage.removeItem("vale_user");
-    navigate("/login");
-  }
-
   async function openImage(event: VisionEvent) {
-    setImageModal({
-      open: true,
-      event,
-      loading: true,
-    });
+    setImageModal({ open: true, event, loading: true });
 
     try {
       const url = await fetchImageUrl(event.id);
@@ -161,130 +122,117 @@ export function DashboardPage() {
   const systemOnline = metrics?.system_online ?? true;
 
   return (
-  <Box sx={{ display: "flex" }}>
-    
-    {/* SIDEBAR */}
-    <Sidebar
-      role={JSON.parse(localStorage.getItem("vale_user") || "{}")?.role}
-      onLogout={logout}
-    />
-
-    {/* CONTEÚDO PRINCIPAL */}
-    <Box
-      sx={{
-        flexGrow: 1,
-        minHeight: "100vh",
-        backgroundColor: "background.default",
-        pt: "72px",
-      }}
-    >
-      
-      <Header
-        userName={getUserName()}
-        systemOnline={systemOnline}
-        lang={lang}
-        setLang={setLang}
+    <Box sx={{ display: "flex" }}>
+      <Sidebar
+        role={user?.role || ""}
         onLogout={logout}
-        t={t}
       />
 
-      <Container maxWidth="xl" sx={{ py: 3 }}>
-        <Stack spacing={3}>
-          <MetricsGrid metrics={metrics} t={t} />
+      <Box
+        sx={{
+          flexGrow: 1,
+          minHeight: "100vh",
+          backgroundColor: "background.default",
+          pt: "72px",
+        }}
+      >
+        <Header
+          userName={user?.name || user?.email || "Usuário"}
+          systemOnline={systemOnline}
+          lang={lang}
+          setLang={setLang}
+          onLogout={logout}
+          t={t}
+        />
 
-          {(metrics?.over_threshold ?? 0) > 0 && (
-            <Alert severity="warning" icon={<WarningAmberIcon />}>
-              <strong>{t("fillAlarm")}:</strong> {t("fillAlarmDesc")}
-            </Alert>
-          )}
+        <Container maxWidth="xl" sx={{ py: 3 }}>
+          <Stack spacing={3}>
+            <BillingStatusBanner />
 
-          <Card>
-            <CardContent>
+            <MetricsGrid metrics={metrics} t={t} />
+
+            {(metrics?.over_threshold ?? 0) > 0 && (
+              <Alert severity="warning" icon={<WarningAmberIcon />}>
+                <strong>{t("fillAlarm")}:</strong> {t("fillAlarmDesc")}
+              </Alert>
+            )}
+
+            <Paper sx={{ p: 2 }}>
+              <Tabs
+                value={tab}
+                onChange={(_, value) => {
+                  setTab(value);
+                  setPage(0);
+                }}
+                variant="fullWidth"
+                sx={{ mb: 2 }}
+              >
+                {containers.map((c) => (
+                  <Tab key={c.key} value={c.key} label={t(c.labelKey)} />
+                ))}
+              </Tabs>
+
               <Stack
                 direction={{ xs: "column", md: "row" }}
                 spacing={2}
-                alignItems={{ xs: "stretch", md: "center" }}
+                sx={{ mb: 2 }}
               >
-                <Box sx={{ flexGrow: 1 }}>
-                  <Typography variant="h5">{t("dashboard")}</Typography>
-                  <Typography color="text.secondary">
-                    {t("lastFrame")}: {metrics?.last_frame_at || "-"}
-                  </Typography>
-                </Box>
-
-                <Button variant="outlined" color="warning">
-                  {t("resetCount")}
-                </Button>
-
-                <Button
-                  variant="contained"
-                  color="success"
-                  startIcon={<CheckCircleIcon />}
-                >
-                  {t("releaseContaminant")}
-                </Button>
-              </Stack>
-            </CardContent>
-          </Card>
-
-          <Paper sx={{ p: 2 }}>
-            <Tabs
-              value={tab}
-              onChange={(_, value) => {
-                setTab(value);
-                setPage(0);
-              }}
-              variant="fullWidth"
-              sx={{ mb: 2 }}
-            >
-              {containers.map((container) => (
-                <Tab
-                  key={container.key}
-                  value={container.key}
-                  label={t(container.labelKey)}
+                <TextField
+                  label={t("search")}
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(0);
+                  }}
+                  size="small"
+                  sx={{ minWidth: 280 }}
                 />
-              ))}
-            </Tabs>
 
-            <Stack
-              direction={{ xs: "column", md: "row" }}
-              spacing={2}
-              sx={{ mb: 2 }}
-            >
-              <TextField
-                label={t("search")}
-                value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value);
+                <Box sx={{ flexGrow: 1 }} />
+
+                <Button variant="outlined">{t("export")}</Button>
+              </Stack>
+
+              <EventsTable rows={rows} onOpenImage={openImage} t={t} />
+
+              <TablePagination
+                component="div"
+                count={total}
+                page={page}
+                onPageChange={(_, next) => setPage(next)}
+                rowsPerPage={pageSize}
+                onRowsPerPageChange={(e) => {
+                  setPageSize(Number(e.target.value));
                   setPage(0);
                 }}
-                size="small"
-                sx={{ minWidth: 280 }}
+                rowsPerPageOptions={[10, 25, 50, 100]}
               />
+            </Paper>
+          </Stack>
+        </Container>
+      </Box>
 
-              <Box sx={{ flexGrow: 1 }} />
+      <ImageModal
+        open={imageModal.open}
+        event={imageModal.event}
+        imageUrl={imageModal.url}
+        loading={imageModal.loading}
+        onClose={() => setImageModal({ open: false })}
+      />
 
-              <Button variant="outlined">{t("export")}</Button>
-            </Stack>
-
-            <EventsTable rows={rows} onOpenImage={openImage} t={t} />
-
-            <TablePagination
-              component="div"
-              count={total}
-              page={page}
-              onPageChange={(_, next) => setPage(next)}
-              rowsPerPage={pageSize}
-              onRowsPerPageChange={(event) => {
-                setPageSize(Number(event.target.value));
-                setPage(0);
-              }}
-              rowsPerPageOptions={[10, 25, 50, 100]}
-            />
-          </Paper>
-        </Stack>
-      </Container>
+      <ResolveDialog
+        open={resolveDialog.open}
+        eventId={resolveDialog.event?.id}
+        onClose={() => setResolveDialog({ open: false })}
+        onConfirm={(reason) => {
+          if (!resolveDialog.event) return;
+          resolveMutation.mutate({
+            id: resolveDialog.event.id,
+            reason,
+          });
+          setResolveDialog({ open: false });
+        }}
+      />
     </Box>
-  </Box>
-);
+  );
 }

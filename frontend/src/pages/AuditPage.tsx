@@ -21,28 +21,22 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { RemoveRedEye } from "@mui/icons-material";
 import ImageIcon from "@mui/icons-material/Image";
-import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
 import { Sidebar } from "../components/Sidebar";
 import { Header } from "../components/Header";
+import { BillingStatusBanner } from "../components/BillingStatusBanner";
+import { useAuth } from "../context/AuthContext";
 import { useLocale } from "../context/LocaleContext";
 import { fetchImageUrl, fetchMetrics, fetchResolvedEvents } from "../services/api";
 import { VisionEvent } from "../types/events";
 
-function getUser() {
-  try {
-    return JSON.parse(localStorage.getItem("vale_user") || "{}");
-  } catch {
-    return {};
-  }
-}
-
 export function AuditPage() {
-  const navigate = useNavigate();
   const { t, lang, setLang } = useLocale();
-  const user = getUser();
+  const { user, logout } = useAuth();
+  const [imageUrlCache, setImageUrlCache] = useState<Record<number, string>>({});
 
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
@@ -69,33 +63,40 @@ export function AuditPage() {
     retry: false,
   });
 
-  function logout() {
-    localStorage.removeItem("vale_token");
-    localStorage.removeItem("vale_user");
-    navigate("/login");
-  }
-
   async function openDetails(event: VisionEvent) {
     setSelectedEvent(event);
+
+    const cachedUrl = imageUrlCache[event.id];
+
+    if (cachedUrl) {
+        setImageUrl(cachedUrl);
+        return;
+    }
+
     setImageUrl(null);
     setImageLoading(true);
 
     try {
-      const url = await fetchImageUrl(event.id);
-      setImageUrl(url);
+        const url = await fetchImageUrl(event.id);
+
+        setImageUrl(url);
+        setImageUrlCache((prev) => ({
+        ...prev,
+        [event.id]: url,
+        }));
     } catch {
-      setImageUrl(null);
+        setImageUrl(null);
     } finally {
-      setImageLoading(false);
+        setImageLoading(false);
     }
-  }
+    }
 
   const rows = resolvedQuery.data?.items || [];
   const total = resolvedQuery.data?.total || 0;
 
   return (
     <Box sx={{ display: "flex" }}>
-      <Sidebar role={user.role} onLogout={logout} />
+      <Sidebar role={user?.role || ""} onLogout={logout} />
 
       <Box
         sx={{
@@ -106,7 +107,7 @@ export function AuditPage() {
         }}
       >
         <Header
-          userName={user.name || user.email || "Usuário"}
+          userName={user?.name || user?.email || "Usuário"}
           systemOnline={metricsQuery.data?.system_online ?? true}
           lang={lang}
           setLang={setLang}
@@ -116,6 +117,8 @@ export function AuditPage() {
 
         <Container maxWidth="xl" sx={{ py: 3 }}>
           <Stack spacing={3}>
+            <BillingStatusBanner />
+
             <Box>
               <Typography variant="h5" fontWeight={800}>
                 Auditoria
@@ -169,10 +172,10 @@ export function AuditPage() {
                         <TableCell>Data</TableCell>
                         <TableCell>Hora</TableCell>
                         <TableCell>Arquivo</TableCell>
-                        <TableCell>Material esperado</TableCell>
+                        <TableCell>Esperado</TableCell>
                         <TableCell>Detectado</TableCell>
                         <TableCell>Contaminante</TableCell>
-                        <TableCell>Resolvido em</TableCell>
+                        <TableCell>Resolvido</TableCell>
                         <TableCell>Motivo</TableCell>
                         <TableCell align="right">Ações</TableCell>
                       </TableRow>
@@ -211,15 +214,15 @@ export function AuditPage() {
                             </Typography>
                           </TableCell>
                           <TableCell align="right">
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              startIcon={<ImageIcon />}
-                              onClick={() => openDetails(event)}
-                            >
-                              Ver imagem
-                            </Button>
-                          </TableCell>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<ImageIcon />}
+                            onClick={() => openDetails(event)}
+                          >
+                            <RemoveRedEye fontSize="small" color="secondary" />
+                          </Button>
+                        </TableCell>
                         </TableRow>
                       ))}
 
@@ -266,7 +269,8 @@ export function AuditPage() {
       >
         <DialogTitle>Evidência do evento resolvido</DialogTitle>
 
-        <DialogContent>
+        <DialogContent   sx={{overflow: "visible",}}
+>
           {selectedEvent && (
             <Stack spacing={2}>
               <Typography fontWeight={800}>
@@ -284,7 +288,7 @@ export function AuditPage() {
                   alt="Imagem do evento"
                   sx={{
                     width: "100%",
-                    maxHeight: 460,
+                    maxHeight: 320,
                     objectFit: "contain",
                     borderRadius: 2,
                     border: "1px solid rgba(15,23,42,0.12)",
@@ -294,7 +298,13 @@ export function AuditPage() {
                 <Alert severity="warning">Imagem não disponível.</Alert>
               )}
 
-              <Stack spacing={0.5}>
+              <Box
+                sx={{
+                    display: "grid",
+                    gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+                    gap: 1,
+                }}
+                >
                 <Typography>
                   <strong>Caçamba:</strong>{" "}
                   {selectedEvent.cacamba_esperada || "-"}
@@ -320,7 +330,7 @@ export function AuditPage() {
                 <Typography>
                   <strong>Motivo:</strong> {selectedEvent.resolved_reason || "-"}
                 </Typography>
-              </Stack>
+              </Box>
             </Stack>
           )}
         </DialogContent>
