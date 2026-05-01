@@ -130,9 +130,9 @@ resource "aws_route53_record" "frontend" {
     "${record.zone_id}:${record.name}" => record
   }
 
-  zone_id = each.value.zone_id
-  name    = each.value.name
-  type    = "A"
+  zone_id         = each.value.zone_id
+  name            = each.value.name
+  type            = "A"
   allow_overwrite = true
 
   alias {
@@ -147,9 +147,9 @@ resource "aws_route53_record" "frontend_redirect" {
     for record in var.frontend_dns_records : "${record.zone_id}:${record.name}" => record
   }
 
-  zone_id = each.value.zone_id
-  name    = each.value.name
-  type    = "A"
+  zone_id         = each.value.zone_id
+  name            = each.value.name
+  type            = "A"
   allow_overwrite = true
 
   alias {
@@ -167,9 +167,9 @@ resource "aws_route53_record" "backend" {
     ) : "${record.zone_id}:${record.name}" => record
   }
 
-  zone_id = each.value.zone_id
-  name    = each.value.name
-  type    = "A"
+  zone_id         = each.value.zone_id
+  name            = each.value.name
+  type            = "A"
   allow_overwrite = true
 
   alias {
