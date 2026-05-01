@@ -1,9 +1,10 @@
-name: Deploy
+name: Deploy Vale Vision
 
 on:
   push:
     branches:
       - main
+      - feature/mauroslucios
     paths:
       - "backend/**"
       - "frontend/**"
@@ -38,13 +39,13 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Build frontend bundle
+      - name: Build frontend
         working-directory: ./frontend
         run: |
           npm ci
           npm run build
 
-      - name: Copy frontend bundle to backend web
+      - name: Copy frontend build into backend
         run: |
           rm -rf ./backend/app/web
           mkdir -p ./backend/app/web
@@ -56,7 +57,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
 
-      - name: Login to ECR
+      - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
@@ -80,7 +81,16 @@ jobs:
           docker push $REGISTRY/$ECR_INFERENCE_REPOSITORY:$IMAGE_TAG
           docker push $REGISTRY/$ECR_INFERENCE_REPOSITORY:latest
 
-      - name: Force new ECS deployment
+      - name: Force ECS deployment
         run: |
-          aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_BACKEND_SERVICE --force-new-deployment --region $AWS_REGION
-          aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_INFERENCE_SERVICE --force-new-deployment --region $AWS_REGION
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service $ECS_BACKEND_SERVICE \
+            --force-new-deployment \
+            --region $AWS_REGION
+
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service $ECS_INFERENCE_SERVICE \
+            --force-new-deployment \
+            --region $AWS_REGION

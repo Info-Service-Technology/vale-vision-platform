@@ -32,7 +32,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Header } from "../components/Header";
 import { Sidebar } from "../components/Sidebar";
 import { useAuth } from "../context/AuthContext";
-import { useLocale } from "../context/LocaleContext";
+import { useLocale } from "../hooks/useLocale";
 import { fetchBillingTenants, fetchMetrics, updateTenantBilling } from "../services/api";
 
 type BillingTenant = {
