@@ -108,3 +108,25 @@ sql/***.deb
 *.weights
 data/
 uploads/
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+
+# Node/build
+node_modules/
+dist/
+frontend/dist/
+
+# Artifacts/data/models
+data/
+uploads/
+*.zip
+*.tar
+*.tar.gz
+*.onnx
+*.pt
+*.pth
+*.weights
