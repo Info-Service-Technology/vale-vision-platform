@@ -56,7 +56,6 @@ validacao_*/
 analise_*/
 baseline_*/
 backup_*/
-logs/
 data/
 *.db
 *.sqlite
