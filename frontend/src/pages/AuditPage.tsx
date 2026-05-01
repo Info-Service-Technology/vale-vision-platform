@@ -23,27 +23,19 @@ import {
 } from "@mui/material";
 import { RemoveRedEye } from "@mui/icons-material";
 import ImageIcon from "@mui/icons-material/Image";
-import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
 import { Sidebar } from "../components/Sidebar";
 import { Header } from "../components/Header";
+import { BillingStatusBanner } from "../components/BillingStatusBanner";
+import { useAuth } from "../context/AuthContext";
 import { useLocale } from "../context/LocaleContext";
 import { fetchImageUrl, fetchMetrics, fetchResolvedEvents } from "../services/api";
 import { VisionEvent } from "../types/events";
 
-function getUser() {
-  try {
-    return JSON.parse(localStorage.getItem("vale_user") || "{}");
-  } catch {
-    return {};
-  }
-}
-
 export function AuditPage() {
-  const navigate = useNavigate();
   const { t, lang, setLang } = useLocale();
-  const user = getUser();
+  const { user, logout } = useAuth();
   const [imageUrlCache, setImageUrlCache] = useState<Record<number, string>>({});
 
   const [page, setPage] = useState(0);
@@ -70,12 +62,6 @@ export function AuditPage() {
       }),
     retry: false,
   });
-
-  function logout() {
-    localStorage.removeItem("vale_token");
-    localStorage.removeItem("vale_user");
-    navigate("/login");
-  }
 
   async function openDetails(event: VisionEvent) {
     setSelectedEvent(event);
@@ -110,7 +96,7 @@ export function AuditPage() {
 
   return (
     <Box sx={{ display: "flex" }}>
-      <Sidebar role={user.role} onLogout={logout} />
+      <Sidebar role={user?.role || ""} onLogout={logout} />
 
       <Box
         sx={{
@@ -121,7 +107,7 @@ export function AuditPage() {
         }}
       >
         <Header
-          userName={user.name || user.email || "Usuário"}
+          userName={user?.name || user?.email || "Usuário"}
           systemOnline={metricsQuery.data?.system_online ?? true}
           lang={lang}
           setLang={setLang}
@@ -131,6 +117,8 @@ export function AuditPage() {
 
         <Container maxWidth="xl" sx={{ py: 3 }}>
           <Stack spacing={3}>
+            <BillingStatusBanner />
+
             <Box>
               <Typography variant="h5" fontWeight={800}>
                 Auditoria

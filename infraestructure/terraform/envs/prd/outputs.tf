@@ -1,0 +1,11 @@
+output "backend_repository_url" { value = module.ecr.backend_repository_url }
+output "inference_repository_url" { value = module.ecr.inference_repository_url }
+output "artifacts_bucket_name" { value = module.artifacts.bucket_name }
+output "backend_target_group_arn" { value = module.alb_app.backend_target_group_arn }
+output "db_endpoint" { value = local.db_endpoint }
+output "smtp_secret_arn" { value = module.secrets.smtp_secret_arn }
+output "alb_dns_name" { value = module.alb_app.alb_dns_name }
+output "backend_service_name" { value = module.ecs_app.backend_service_name }
+output "inference_service_name" { value = module.ecs_app.inference_service_name }
+output "ecs_cluster_name" { value = module.ecs_app.cluster_name }
+output "github_actions_role_arn" { value = try(module.github_oidc[0].role_arn, null) }

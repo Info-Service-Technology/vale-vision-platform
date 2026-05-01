@@ -17,9 +17,12 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import HistoryIcon from "@mui/icons-material/History";
+import ApartmentIcon from "@mui/icons-material/Apartment";
 
 import { useLocation, useNavigate } from "react-router-dom";
 import logo from "../assets/Logo_Sensx.png";
+import { useAuth } from "../context/AuthContext";
+import { useLocale } from "../context/LocaleContext";
 
 interface Props {
   role: string;
@@ -29,31 +32,45 @@ interface Props {
 export function Sidebar({ role, onLogout }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isSuperAdmin, canWriteTenantData } = useAuth();
+  const { t } = useLocale();
 
-  const isSuperAdmin = role === "super-admin";
+  const isTenantAdmin = role === "admin-tenant";
 
   const tenantMenu = [
-    { label: "Painel", icon: <DashboardIcon />, path: "/dashboard" },
-    { label: "Caçambas", icon: <DeleteIcon />, path: "/cacambas" },
-    { label: "Perfil", icon: <PersonIcon />, path: "/perfil" },
-    { label: "Sistema", icon: <SettingsIcon />, path: "/sistema" },
-    { label: "Ajuda", icon: <HelpOutlineIcon />, path: "/ajuda" },
+    { label: t("dashboard"), icon: <DashboardIcon />, path: "/dashboard" },
+    { label: t("bins"), icon: <DeleteIcon />, path: "/cacambas" },
+    { label: t("billing"), icon: <ReceiptIcon />, path: "/billing" },
+    { label: t("profile"), icon: <PersonIcon />, path: "/perfil" },
+    { label: t("system"), icon: <SettingsIcon />, path: "/sistema" },
+    { label: t("help"), icon: <HelpOutlineIcon />, path: "/ajuda" },
   ];
 
   const adminMenu = [
-    { label: "Administração de usuários", icon: <AdminPanelSettingsIcon />, path: "/admin/users" },
-    { label: "Billing", icon: <ReceiptIcon />, path: "/billing" },
-    { label: "Auditoria", icon: <HistoryIcon />, path: "/audit" },
+    {
+      label: t("users_management"),
+      icon: <AdminPanelSettingsIcon />,
+      path: "/admin/users",
+      disabled: !isSuperAdmin && !canWriteTenantData,
+    },
   ];
 
-  function renderItem(item: { label: string; icon: React.ReactNode; path: string }) {
+  const superAdminMenu = [
+    { label: t("tenants"), icon: <ApartmentIcon />, path: "/admin/tenants" },
+    { label: t("audit"), icon: <HistoryIcon />, path: "/admin/audit" },
+  ];
+
+  function renderItem(item: { label: string; icon: React.ReactNode; path: string; disabled?: boolean }) {
     const selected = location.pathname === item.path;
 
     return (
       <ListItemButton
         key={item.label}
         selected={selected}
-        onClick={() => navigate(item.path)}
+        onClick={() => {
+          if (!item.disabled) navigate(item.path);
+        }}
+        disabled={item.disabled}
         sx={{
           mx: 1,
           mb: 0.5,
@@ -97,7 +114,14 @@ export function Sidebar({ role, onLogout }: Props) {
       >
         <Box
           component="img"
-          src={logo}
+          src={(() => {
+            try {
+              const tenant = JSON.parse(localStorage.getItem("vale_tenant") || "{}");
+              return tenant.company_logo_url || logo;
+            } catch {
+              return logo;
+            }
+          })()}
           alt="SensX"
           sx={{
             width: "100%",
@@ -113,11 +137,12 @@ export function Sidebar({ role, onLogout }: Props) {
         {tenantMenu.map(renderItem)}
       </List>
 
-      {isSuperAdmin && (
+      {(isSuperAdmin || isTenantAdmin) && (
         <>
           <Divider />
           <List sx={{ py: 2 }}>
             {adminMenu.map(renderItem)}
+            {isSuperAdmin && superAdminMenu.map(renderItem)}
           </List>
         </>
       )}
@@ -131,7 +156,7 @@ export function Sidebar({ role, onLogout }: Props) {
           <ListItemIcon>
             <LogoutIcon />
           </ListItemIcon>
-          <ListItemText primary="Sair" />
+          <ListItemText primary={t("logout")} />
         </ListItemButton>
       </List>
     </Drawer>

@@ -1,0 +1,57 @@
+name: Terraform
+
+on:
+  pull_request:
+    paths:
+      - "infraestructure/terraform/**"
+      - ".github/workflows/terraform.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "infraestructure/terraform/**"
+      - ".github/workflows/terraform.yml"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: sa-east-1
+      TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD }}
+      TF_VAR_smtp_password: ${{ secrets.TF_VAR_SMTP_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+      - uses: hashicorp/setup-terraform@v3
+      - name: Terraform Init
+        run: terraform -chdir=infraestructure/terraform/envs/prd init
+      - name: Terraform Plan
+        run: terraform -chdir=infraestructure/terraform/envs/prd plan -input=false
+
+  apply:
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    needs: plan
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: sa-east-1
+      TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD }}
+      TF_VAR_smtp_password: ${{ secrets.TF_VAR_SMTP_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+      - uses: hashicorp/setup-terraform@v3
+      - name: Terraform Init
+        run: terraform -chdir=infraestructure/terraform/envs/prd init
+      - name: Terraform Apply
+        run: terraform -chdir=infraestructure/terraform/envs/prd apply -input=false -auto-approve

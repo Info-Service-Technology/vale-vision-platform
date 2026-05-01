@@ -19,9 +19,10 @@ import {
 } from "@mui/material";
 import logo from "../assets/Logo_Sensx.png";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import { useLocale } from "../context/LocaleContext";
-import { Lang } from "../i18n/translations";
-import { fetchCurrentTenant, login } from "../services/api";
+import { Lang, supportedLanguages } from "../i18n/translations";
+import { fetchTenantBySlug } from "../services/api";
 import { Link as RouterLink } from "react-router-dom";
 
 type LoginProfile = "mineradora" | "sensx";
@@ -29,6 +30,7 @@ type LoginProfile = "mineradora" | "sensx";
 export function LoginPage() {
   const navigate = useNavigate();
   const { t, lang, setLang } = useLocale();
+  const { login } = useAuth();
 
   const [tenant, setTenant] = useState<{
     id: number;
@@ -36,16 +38,49 @@ export function LoginPage() {
     slug: string;
   } | null>(null);
 
+  const [tenantSlug, setTenantSlug] = useState(
+    () => localStorage.getItem("vale_tenant_slug") || ""
+  );
   const [loginProfile, setLoginProfile] = useState<LoginProfile>("mineradora");
   const [email, setEmail] = useState("admin@valevision.com");
   const [password, setPassword] = useState("123456");
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetchCurrentTenant()
-      .then(setTenant)
-      .catch(() => setError("Não foi possível carregar o tenant da plataforma."));
-  }, []);
+    let active = true;
+
+    async function loadTenant() {
+      if (loginProfile !== "mineradora") {
+        setTenant(null);
+        setError("");
+        return;
+      }
+
+      if (!tenantSlug.trim()) {
+        setTenant(null);
+        return;
+      }
+
+      try {
+        const data = await fetchTenantBySlug(tenantSlug.trim());
+        if (active) {
+          setTenant(data);
+          setError("");
+        }
+      } catch {
+        if (active) {
+          setTenant(null);
+          setError("Mineradora não encontrada.");
+        }
+      }
+    }
+
+    loadTenant();
+
+    return () => {
+      active = false;
+    };
+  }, [tenantSlug, loginProfile]);
 
   function handleProfileChange(
     _event: React.MouseEvent<HTMLElement>,
@@ -54,38 +89,38 @@ export function LoginPage() {
     if (!value) return;
 
     setLoginProfile(value);
+    setError("");
 
     if (value === "mineradora") {
       setEmail("admin@valevision.com");
+      return;
     }
 
-    if (value === "sensx") {
-      setEmail("admin@sensx.com.br");
-    }
+    setTenant(null);
+    setEmail("admin@sensx.com");
   }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError("");
 
+    if (loginProfile === "mineradora" && !tenantSlug.trim()) {
+      setError("Informe a mineradora para continuar.");
+      return;
+    }
+
     try {
-      const res = await login(email, password);
-
-      localStorage.setItem("vale_token", res.access_token);
-
-      if (res.user) {
-        localStorage.setItem(
-          "vale_user",
-          JSON.stringify({
-            ...res.user,
-            loginProfile,
-          })
-        );
-      }
-
+      await login(
+        email,
+        password,
+        loginProfile === "mineradora" ? tenantSlug.trim() : undefined
+      );
       navigate("/dashboard");
-    } catch {
-      setError("Falha no login. Verifique usuário e senha.");
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.detail ||
+          "Falha no login. Verifique usuário, senha e perfil de acesso."
+      );
     }
   }
 
@@ -95,18 +130,19 @@ export function LoginPage() {
         minHeight: "100vh",
         display: "flex",
         alignItems: "center",
+        py: 2,
         background: "linear-gradient(135deg,#F7FAFC 0%,#EAF3F2 100%)",
       }}
     >
       <Container maxWidth="sm">
-        <Card sx={{ p: 2 }}>
-          <CardContent>
-            <Stack spacing={2.5} alignItems="center">
+        <Card sx={{ p: 1.5 }}>
+          <CardContent sx={{ "&:last-child": { pb: 2 } }}>
+            <Stack spacing={1.75} alignItems="center">
               <Box
                 sx={{
                   width: "100%",
-                  maxWidth: 300,
-                  height: 90,
+                  maxWidth: 260,
+                  height: 72,
                   display: "flex",
                   justifyContent: "center",
                   alignItems: "center",
@@ -118,7 +154,7 @@ export function LoginPage() {
                   src={logo}
                   alt="SensX"
                   sx={{
-                    maxWidth: 280,
+                    maxWidth: 240,
                     width: "100%",
                     height: "auto",
                     objectFit: "contain",
@@ -128,7 +164,7 @@ export function LoginPage() {
 
               <Stack spacing={0.5} textAlign="center">
                 <Typography variant="h5">
-                  {tenant?.name || "..."} {t("appTitle")}
+                  {tenant?.name || t("organization")} {t("appTitle")}
                 </Typography>
 
                 <Typography color="text.secondary">
@@ -144,11 +180,10 @@ export function LoginPage() {
                 size="small"
               >
                 <ToggleButton value="mineradora">
-                  Usuário Mineradora
+                  {t("miningUser")}
                 </ToggleButton>
-
                 <ToggleButton value="sensx">
-                  Usuário SensX
+                  {t("sensxUser")}
                 </ToggleButton>
               </ToggleButtonGroup>
 
@@ -156,7 +191,7 @@ export function LoginPage() {
                 size="small"
                 sx={{
                   alignSelf: "flex-end",
-                  width: 150,
+                  width: 140,
                 }}
               >
                 <InputLabel>Idioma</InputLabel>
@@ -166,9 +201,11 @@ export function LoginPage() {
                   value={lang}
                   onChange={(event) => setLang(event.target.value as Lang)}
                 >
-                  <MenuItem value="pt-BR">pt-BR</MenuItem>
-                  <MenuItem value="en">en</MenuItem>
-                  <MenuItem value="es">es</MenuItem>
+                  {supportedLanguages.map((language) => (
+                    <MenuItem key={language} value={language}>
+                      {language}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
 
@@ -183,13 +220,31 @@ export function LoginPage() {
                 onSubmit={handleSubmit}
                 sx={{ width: "100%" }}
               >
-                <Stack spacing={2}>
-                  <TextField
-                    label={t("email")}
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    fullWidth
-                  />
+                <Stack spacing={1.5}>
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+                    <TextField
+                      label={t("organizationSlug")}
+                      value={tenantSlug}
+                      onChange={(event) => setTenantSlug(event.target.value)}
+                      fullWidth
+                      required={loginProfile === "mineradora"}
+                      disabled={loginProfile !== "mineradora"}
+                      helperText={
+                        loginProfile === "mineradora"
+                          ? tenant?.slug
+                            ? `${t("organization")}: ${tenant.name}`
+                            : t("organizationSlugHelp")
+                          : t("sensxLoginHelp")
+                      }
+                    />
+
+                    <TextField
+                      label={t("email")}
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      fullWidth
+                    />
+                  </Stack>
 
                   <TextField
                     label={t("password")}
@@ -204,16 +259,17 @@ export function LoginPage() {
                   </Button>
 
                   <Stack
-                    direction="row"
+                    direction={{ xs: "column", sm: "row" }}
                     justifyContent="space-between"
-                    alignItems="center"
+                    alignItems={{ xs: "flex-start", sm: "center" }}
+                    spacing={1}
                   >
                     <Link
                       component={RouterLink}
                       to="/register"
                       underline="none"
                     >
-                      Registrar novo usuário
+                      {t("registerNewUser")}
                     </Link>
 
                     <Link
@@ -221,7 +277,7 @@ export function LoginPage() {
                       to="/forgot-password"
                       underline="none"
                     >
-                      Recuperar senha
+                      {t("recoverPassword")}
                     </Link>
                   </Stack>
                 </Stack>

@@ -24,8 +24,11 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import LogoutIcon from "@mui/icons-material/Logout";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 
-import { Lang } from "../i18n/translations";
+import { Lang, supportedLanguages } from "../i18n/translations";
+import { useNavigate } from "react-router-dom";
+import { readSystemSettings } from "../utils/branding";
 
 interface Props {
   userName: string;
@@ -55,11 +58,21 @@ function getUserRole() {
 }
 
 function getTenantName() {
+  const systemSettings = readSystemSettings();
   try {
     const user = JSON.parse(localStorage.getItem("vale_user") || "{}");
-    return user.tenant_name || "Platform";
+    return user.tenant_name || systemSettings.app_name || "Platform";
   } catch {
-    return "Platform";
+    return systemSettings.app_name || "Platform";
+  }
+}
+
+function getUserAvatar() {
+  try {
+    const user = JSON.parse(localStorage.getItem("vale_user") || "{}");
+    return user.avatar_url || "";
+  } catch {
+    return "";
   }
 }
 
@@ -71,12 +84,14 @@ export function Header({
   onLogout,
   t,
 }: Props) {
+  const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const open = Boolean(anchorEl);
   const userEmail = getUserEmail();
   const userRole = getUserRole();
   const tenantName = getTenantName();
+  const userAvatar = getUserAvatar();
   return (
     <AppBar
       position="fixed"
@@ -119,9 +134,11 @@ export function Header({
             value={lang}
             onChange={(event) => setLang(event.target.value as Lang)}
           >
-            <MenuItem value="pt-BR">pt-BR</MenuItem>
-            <MenuItem value="en">en</MenuItem>
-            <MenuItem value="es">es</MenuItem>
+            {supportedLanguages.map((language) => (
+              <MenuItem key={language} value={language}>
+                {language}
+              </MenuItem>
+            ))}
           </Select>
         </FormControl>
 
@@ -135,7 +152,7 @@ export function Header({
           }}
         >
           <Stack direction="row" spacing={1.2} alignItems="center">
-            <Avatar sx={{ width: 34, height: 34 }}>
+            <Avatar src={userAvatar || undefined} sx={{ width: 34, height: 34 }}>
               {userName?.charAt(0)?.toUpperCase() || "U"}
             </Avatar>
 
@@ -185,25 +202,32 @@ export function Header({
 
           <Divider />
 
-          <MenuItem>
+          <MenuItem onClick={() => navigate("/perfil")}>
             <ListItemIcon>
               <AccountCircleIcon fontSize="small" />
             </ListItemIcon>
             Perfil
           </MenuItem>
 
-          <MenuItem>
+          <MenuItem onClick={() => navigate("/billing")}>
             <ListItemIcon>
               <ReceiptLongIcon fontSize="small" />
             </ListItemIcon>
             Billing
           </MenuItem>
 
-          <MenuItem>
+          <MenuItem onClick={() => navigate("/sistema")}>
             <ListItemIcon>
               <SettingsIcon fontSize="small" />
             </ListItemIcon>
             Sistema
+          </MenuItem>
+
+          <MenuItem onClick={() => navigate("/ajuda")}>
+            <ListItemIcon>
+              <HelpOutlineIcon fontSize="small" />
+            </ListItemIcon>
+            Ajuda
           </MenuItem>
 
           <Divider />

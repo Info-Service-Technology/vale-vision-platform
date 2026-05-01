@@ -13,17 +13,17 @@ import {
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { RemoveRedEye } from "@mui/icons-material";
 import { Sidebar } from "../components/Sidebar";
 import { Header } from "../components/Header";
 import { MetricsGrid } from "../components/MetricsGrid";
 import { EventsTable } from "../features/events/EventsTable";
 import { ImageModal } from "../components/ImageModal";
 import { ResolveDialog } from "../components/ResolveDialog";
+import { BillingStatusBanner } from "../components/BillingStatusBanner";
 
 import { useLocale } from "../context/LocaleContext";
+import { useAuth } from "../context/AuthContext";
 import {
   fetchEvents,
   fetchImageUrl,
@@ -40,19 +40,10 @@ const containers = [
   { key: "sucata", labelKey: "scrap", filter: "sucata" },
 ];
 
-function getUserName() {
-  try {
-    const user = JSON.parse(localStorage.getItem("vale_user") || "{}");
-    return user.name || user.email || "usuário";
-  } catch {
-    return "usuário";
-  }
-}
-
 export function DashboardPage() {
   const { t, lang, setLang } = useLocale();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user, logout } = useAuth();
 
   const [tab, setTab] = useState("all");
   const [page, setPage] = useState(0);
@@ -103,12 +94,6 @@ export function DashboardPage() {
     },
   });
 
-  function logout() {
-    localStorage.removeItem("vale_token");
-    localStorage.removeItem("vale_user");
-    navigate("/login");
-  }
-
   async function openImage(event: VisionEvent) {
     setImageModal({ open: true, event, loading: true });
 
@@ -139,7 +124,7 @@ export function DashboardPage() {
   return (
     <Box sx={{ display: "flex" }}>
       <Sidebar
-        role={JSON.parse(localStorage.getItem("vale_user") || "{}")?.role}
+        role={user?.role || ""}
         onLogout={logout}
       />
 
@@ -152,7 +137,7 @@ export function DashboardPage() {
         }}
       >
         <Header
-          userName={getUserName()}
+          userName={user?.name || user?.email || "Usuário"}
           systemOnline={systemOnline}
           lang={lang}
           setLang={setLang}
@@ -162,6 +147,8 @@ export function DashboardPage() {
 
         <Container maxWidth="xl" sx={{ py: 3 }}>
           <Stack spacing={3}>
+            <BillingStatusBanner />
+
             <MetricsGrid metrics={metrics} t={t} />
 
             {(metrics?.over_threshold ?? 0) > 0 && (

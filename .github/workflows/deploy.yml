@@ -1,0 +1,86 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - "inference/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: sa-east-1
+      ECR_BACKEND_REPOSITORY: ${{ vars.ECR_BACKEND_REPOSITORY_VISION }}
+      ECR_INFERENCE_REPOSITORY: ${{ vars.ECR_INFERENCE_REPOSITORY_VISION }}
+      ECS_CLUSTER: ${{ vars.ECS_CLUSTER_NAME_VISION }}
+      ECS_BACKEND_SERVICE: ${{ vars.ECS_BACKEND_SERVICE_NAME_VISION }}
+      ECS_INFERENCE_SERVICE: ${{ vars.ECS_INFERENCE_SERVICE_NAME_VISION }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend bundle
+        working-directory: ./frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Copy frontend bundle to backend web
+        run: |
+          rm -rf ./backend/app/web
+          mkdir -p ./backend/app/web
+          cp -r ./frontend/dist/. ./backend/app/web/
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push backend image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $REGISTRY/$ECR_BACKEND_REPOSITORY:$IMAGE_TAG ./backend
+          docker tag $REGISTRY/$ECR_BACKEND_REPOSITORY:$IMAGE_TAG $REGISTRY/$ECR_BACKEND_REPOSITORY:latest
+          docker push $REGISTRY/$ECR_BACKEND_REPOSITORY:$IMAGE_TAG
+          docker push $REGISTRY/$ECR_BACKEND_REPOSITORY:latest
+
+      - name: Build and push inference image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $REGISTRY/$ECR_INFERENCE_REPOSITORY:$IMAGE_TAG ./inference
+          docker tag $REGISTRY/$ECR_INFERENCE_REPOSITORY:$IMAGE_TAG $REGISTRY/$ECR_INFERENCE_REPOSITORY:latest
+          docker push $REGISTRY/$ECR_INFERENCE_REPOSITORY:$IMAGE_TAG
+          docker push $REGISTRY/$ECR_INFERENCE_REPOSITORY:latest
+
+      - name: Force new ECS deployment
+        run: |
+          aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_BACKEND_SERVICE --force-new-deployment --region $AWS_REGION
+          aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_INFERENCE_SERVICE --force-new-deployment --region $AWS_REGION

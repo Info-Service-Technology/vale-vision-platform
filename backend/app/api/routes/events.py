@@ -9,7 +9,8 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.security import get_current_user
 from app.db.session import SessionLocal
-from app.models.models import Event
+from app.models.models import Event, Tenant
+from app.services.audit import write_audit_log
 
 router = APIRouter(tags=["events"])
 
@@ -34,6 +35,31 @@ def apply_tenant_scope(query, user: dict):
         return query
 
     return query.filter(Event.tenant_id == tenant_id)
+
+
+def ensure_user_can_resolve(user: dict, db: Session):
+    if user.get("role") == "viewer":
+        raise HTTPException(
+            status_code=403,
+            detail="Usuário sem permissão para resolver monitoramentos manualmente",
+        )
+
+    if user.get("role") == "super-admin":
+        return
+
+    tenant_id = user.get("tenant_id")
+    if not tenant_id:
+        raise HTTPException(status_code=400, detail="Usuário sem tenant vinculado")
+
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant não encontrado")
+
+    if (tenant.billing_status or "active") in {"suspended_read_only", "suspended_full", "terminated"}:
+        raise HTTPException(
+            status_code=403,
+            detail="Este tenant está com restrição operacional por billing",
+        )
 
 
 def apply_material_filter(query, material: str | None):
@@ -234,6 +260,8 @@ def resolve_event(
     db: Session = Depends(get_db),
     user: dict = Depends(get_current_user),
 ):
+    ensure_user_can_resolve(user, db)
+
     query = db.query(Event).filter(Event.id == event_id)
     query = apply_tenant_scope(query, user)
 
@@ -249,6 +277,18 @@ def resolve_event(
     event.resolved_reason = payload.reason or "Resolvido manualmente pela operação"
 
     db.commit()
+
+    write_audit_log(
+        db,
+        user_id=user.get("user_id"),
+        user_email=user.get("email"),
+        tenant_id=user.get("tenant_id"),
+        action="monitoring_resolved",
+        method="PATCH",
+        endpoint=f"/api/events/{event_id}/resolve",
+        status=200,
+        details={"event_id": event_id, "reason": event.resolved_reason},
+    )
 
     return {
         "status": "ok",

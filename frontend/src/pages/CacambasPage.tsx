@@ -27,33 +27,24 @@ import {
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ImageIcon from "@mui/icons-material/Image";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Sidebar } from "../components/Sidebar";
 import { Header } from "../components/Header";
+import { BillingStatusBanner } from "../components/BillingStatusBanner";
+import { useAuth } from "../context/AuthContext";
 import { useLocale } from "../context/LocaleContext";
 import { fetchEvents, fetchImageUrl, fetchMetrics, resolveEvent } from "../services/api";
 import { VisionEvent } from "../types/events";
 import { RemoveRedEye } from "@mui/icons-material";
 
-function getUser() {
-  try {
-    return JSON.parse(localStorage.getItem("vale_user") || "{}");
-  } catch {
-    return {};
-  }
-}
-
 export function CacambasPage() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { t, lang, setLang } = useLocale();
+  const { user, logout, canWriteTenantData, isSuperAdmin } = useAuth();
   const [success, setSuccess] = useState("");
   const [resolving, setResolving] = useState(false);
   const [imageUrlCache, setImageUrlCache] = useState<Record<number, string>>({});
-
-  const user = getUser();
 
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
@@ -83,13 +74,6 @@ export function CacambasPage() {
     retry: false,
   });
 
-  function logout() {
-    localStorage.removeItem("vale_token");
-    localStorage.removeItem("vale_user");
-    navigate("/login");
-  }
-
-  
   async function openDetails(event: VisionEvent) {
         setSelectedEvent(event);
 
@@ -134,10 +118,12 @@ export function CacambasPage() {
 
   const rows = eventsQuery.data?.items || [];
   const total = eventsQuery.data?.total || 0;
+  const canResolveMonitoring =
+    isSuperAdmin || (user?.role !== "viewer" && canWriteTenantData);
 
   return (
     <Box sx={{ display: "flex" }}>
-      <Sidebar role={user.role} onLogout={logout} />
+      <Sidebar role={user?.role || ""} onLogout={logout} />
 
       <Box
         sx={{
@@ -148,7 +134,7 @@ export function CacambasPage() {
         }}
       >
         <Header
-          userName={user.name || user.email || "Usuário"}
+          userName={user?.name || user?.email || "Usuário"}
           systemOnline={metricsQuery.data?.system_online ?? true}
           lang={lang}
           setLang={setLang}
@@ -158,6 +144,8 @@ export function CacambasPage() {
 
         <Container maxWidth="xl" sx={{ py: 3 }}>
           <Stack spacing={3}>
+            <BillingStatusBanner />
+
             <Box>
               <Typography variant="h5" fontWeight={800}>
                 Caçambas
@@ -276,6 +264,12 @@ export function CacambasPage() {
                 rowsPerPageOptions={[10, 25, 50, 100]}
               />
             </Paper>
+
+            {!canResolveMonitoring && (
+              <Alert severity="info">
+                Este tenant está em modo de acompanhamento. A visualização continua disponível, mas a resolução manual de monitoramentos está bloqueada.
+              </Alert>
+            )}
           </Stack>
         </Container>
       </Box>
@@ -354,7 +348,7 @@ export function CacambasPage() {
               color="success"
               startIcon={<CheckCircleIcon />}
               onClick={handleResolve}
-              disabled={resolving}
+              disabled={resolving || !canResolveMonitoring}
             >
               Resolver
             </Button>
