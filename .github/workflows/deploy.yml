@@ -3,7 +3,7 @@ name: Deploy Vale Vision
 on:
   push:
     branches:
-      - main
+      - main  
     paths:
       - "backend/**"
       - "frontend/**"
