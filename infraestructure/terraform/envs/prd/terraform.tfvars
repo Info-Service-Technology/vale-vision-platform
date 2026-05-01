@@ -3,15 +3,15 @@ environment = "prd"
 name_prefix = "sansx-vision-prd"
 
 # Shared platform
-vpc_id                   = "vpc-0822f063050b009b0"
-private_subnet_ids       = ["subnet-0d906b6d7d3a10755", "subnet-07bbbcfff0a872b63"]
-public_subnet_ids        = ["subnet-00c18bdff943e6739", "subnet-09a6b42e058d1f499"]
-create_ecs_cluster       = true
+vpc_id                        = "vpc-0822f063050b009b0"
+private_subnet_ids            = ["subnet-0d906b6d7d3a10755", "subnet-07bbbcfff0a872b63"]
+public_subnet_ids             = ["subnet-00c18bdff943e6739", "subnet-09a6b42e058d1f499"]
+create_ecs_cluster            = true
 enable_ecs_container_insights = true
-alb_https_listener_arn   = "arn:aws:elasticloadbalancing:sa-east-1:913524918638:listener/app/hdi-dashboard-prod-alb/b00fe8f69b876f8c/a8532763e8c9d77e"
-shared_alb_sg_id         = "sg-0c5064c1218639ab8"
-primary_hosted_zone_id   = "Z0778600DOW4YCR27BKI"
-secondary_hosted_zone_id = null
+alb_https_listener_arn        = "arn:aws:elasticloadbalancing:sa-east-1:913524918638:listener/app/hdi-dashboard-prod-alb/b00fe8f69b876f8c/a8532763e8c9d77e"
+shared_alb_sg_id              = "sg-0c5064c1218639ab8"
+primary_hosted_zone_id        = "Z0778600DOW4YCR27BKI"
+secondary_hosted_zone_id      = null
 
 # Domains
 frontend_host = "sensxvisionplatform.com"
