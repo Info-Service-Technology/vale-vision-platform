@@ -2,7 +2,7 @@ import { Box, Container, Paper, Stack, Typography } from "@mui/material";
 import { Header } from "../components/Header";
 import { Sidebar } from "../components/Sidebar";
 import { useAuth } from "../context/AuthContext";
-import { useLocale } from "../context/LocaleContext";
+import { useLocale } from "../hooks/useLocale";
 
 function Section({
   title,

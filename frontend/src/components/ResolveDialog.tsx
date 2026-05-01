@@ -1,6 +1,6 @@
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from "@mui/material";
 import { useState } from "react";
-import { useLocale } from "../context/LocaleContext";
+import { useLocale } from "../hooks/useLocale";
 
 interface Props {
   open: boolean;

@@ -21,7 +21,7 @@ import { Header } from "../components/Header";
 import { Sidebar } from "../components/Sidebar";
 import { BillingStatusBanner } from "../components/BillingStatusBanner";
 import { useAuth } from "../context/AuthContext";
-import { useLocale } from "../context/LocaleContext";
+import { useLocale } from "../hooks/useLocale";
 import { Lang, supportedLanguages } from "../i18n/translations";
 import {
   readSystemSettings,

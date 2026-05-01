@@ -22,7 +22,7 @@ import ApartmentIcon from "@mui/icons-material/Apartment";
 import { useLocation, useNavigate } from "react-router-dom";
 import logo from "../assets/Logo_Sensx.png";
 import { useAuth } from "../context/AuthContext";
-import { useLocale } from "../context/LocaleContext";
+import { useLocale } from "../hooks/useLocale";
 
 interface Props {
   role: string;

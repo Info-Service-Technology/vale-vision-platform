@@ -22,7 +22,7 @@ import { ImageModal } from "../components/ImageModal";
 import { ResolveDialog } from "../components/ResolveDialog";
 import { BillingStatusBanner } from "../components/BillingStatusBanner";
 
-import { useLocale } from "../context/LocaleContext";
+import { useLocale } from "../hooks/useLocale";
 import { useAuth } from "../context/AuthContext";
 import {
   fetchEvents,

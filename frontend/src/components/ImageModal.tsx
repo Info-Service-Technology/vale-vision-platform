@@ -1,6 +1,6 @@
 import { Alert, Box, CircularProgress, Dialog, DialogContent, DialogTitle, IconButton, Stack, Typography } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import { useLocale } from "../context/LocaleContext";
+import { useLocale } from "../hooks/useLocale";
 import { VisionEvent } from "../types/events";
 
 interface Props {
