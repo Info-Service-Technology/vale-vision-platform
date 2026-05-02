@@ -102,5 +102,5 @@ jobs:
         run: |
           aws ecs wait services-stable \
             --cluster $ECS_CLUSTER \
-            --services $ECS_BACKEND_SERVICE $ECS_INFERENCE_SERVICE \
+            --services $ECS_BACKEND_SERVICE \
             --region $AWS_REGION
