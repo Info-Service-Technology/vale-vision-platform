@@ -1,6 +1,4 @@
-# -----------------------------
 # Python
-# -----------------------------
 __pycache__/
 *.py[cod]
 *.so
@@ -13,34 +11,28 @@ env/
 .coverage
 htmlcov/
 
-# -----------------------------
 # Node / React
-# -----------------------------
 node_modules/
 dist/
 build/
 coverage/
+frontend/dist/
+frontend/tsconfig.tsbuildinfo
 
-# -----------------------------
 # IDE / OS
-# -----------------------------
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
 
-# -----------------------------
 # Environment / secrets
-# -----------------------------
 .env
 .env.*
 !.env.example
 *.pem
 *.key
 
-# -----------------------------
 # Project data and generated artifacts
-# -----------------------------
 DATASETS/
 MODELOS_TREINADOS/
 input/
@@ -57,37 +49,36 @@ analise_*/
 baseline_*/
 backup_*/
 data/
+uploads/
 *.db
 *.sqlite
 *.sqlite3
 *.csv
 
-# Keep small samples if explicitly placed under samples/
+# Keep samples if intentionally committed
 !samples/
 !samples/**
 
-# -----------------------------
-# Images and generated debug assets
-# -----------------------------
+# Images/debug
 **/debug/
 **/masks_opening/
 **/masks_floor/
 **/masks_wall/
 *_debug.jpg
 
-# -----------------------------
-# Models (track only selected models via Git LFS if needed)
-# -----------------------------
+# Models
 models/
 *.pt
 *.onnx
 *.engine
+*.pth
+*.weights
 
-# -----------------------------
-# SQL and database files
-# -----------------------------
+# SQL/db dumps
 *.sql
-sql/***.deb
+sql/**
+
+# Debian packages
 *.deb
 
 # Terraform
@@ -95,39 +86,4 @@ sql/***.deb
 *.tfstate
 *.tfstate.*
 *.tfvars
-.terraform.lock.hcl
-
-# Artifacts
-*.zip
-*.tar
-*.tar.gz
-*.onnx
-*.pt
-*.pth
-*.weights
-data/
-uploads/
-
-# Terraform
-**/.terraform/*
-*.tfstate
-*.tfstate.*
-*.tfvars
-
-# Node/build
-node_modules/
-dist/
-frontend/dist/
-
-# Artifacts/data/models
-data/
-uploads/
-*.zip
-*.tar
-*.tar.gz
-*.onnx
-*.pt
-*.pth
-*.weights
-
-tate
+tfplan
