@@ -59,8 +59,14 @@ O redirect e tratado no listener HTTPS do ALB compartilhado.
 
 ## CI/CD
 - `ci.yml`: validacao de backend, frontend, inference e Terraform
-- `terraform.yml`: `plan` e `apply` da stack
+- `terraform.yml`: execucao manual da stack quando houver mudanca real de infraestrutura
 - `deploy.yml`: build do frontend, copia para `backend/app/web`, build da imagem do backend, push no ECR e rollout no ECS
+
+## Regra Operacional Atual
+- mudancas de frontend, backend e inference devem seguir apenas o fluxo de `deploy.yml`
+- `terraform.yml` nao deve rodar em todo push
+- `terraform apply` deve ser reservado para mudancas intencionais de infraestrutura
+- essa separacao reduz risco em componentes criticos como `RDS`, `IAM`, `Secrets Manager` e `ECS task definition`
 
 ## Secrets Manager
 - `modules/secrets` agora suporta secret dedicado para SMTP
@@ -85,6 +91,8 @@ O redirect e tratado no listener HTTPS do ALB compartilhado.
 ## Documentacao Complementar
 - arquitetura e CI/CD: [`docs/INFRA_CICD_VISION_AWS.md`](/home/mauroslucios/workspace/python/vale-vision-platform/docs/INFRA_CICD_VISION_AWS.md)
 - dominios e Route 53: [`docs/GUIA_DOMINIOS_VISION_AWS.md`](/home/mauroslucios/workspace/python/vale-vision-platform/docs/GUIA_DOMINIOS_VISION_AWS.md)
+- post-mortem operacional: [`docs/POST_MORTEM_VISION_AWS_CICD_2026-05.md`](/home/mauroslucios/workspace/python/vale-vision-platform/docs/POST_MORTEM_VISION_AWS_CICD_2026-05.md)
+- runbook operacional: [`docs/RUNBOOK_VISION_AWS_OPERACAO.md`](/home/mauroslucios/workspace/python/vale-vision-platform/docs/RUNBOOK_VISION_AWS_OPERACAO.md)
 
 ## Observacoes
 - registros apex no Route 53 devem usar `A Alias`, nao `CNAME`

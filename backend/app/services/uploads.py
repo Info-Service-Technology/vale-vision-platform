@@ -4,7 +4,8 @@ from uuid import uuid4
 from fastapi import HTTPException, UploadFile
 
 MAX_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024
-UPLOADS_ROOT = Path(__file__).resolve().parents[2] / "static" / "uploads"
+# Keep uploads inside app/static so they are served by FastAPI's /static mount.
+UPLOADS_ROOT = Path(__file__).resolve().parents[1] / "static" / "uploads"
 
 
 def ensure_upload_dir(folder: str) -> Path:

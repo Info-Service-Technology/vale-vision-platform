@@ -28,7 +28,7 @@ backend_dns_records = []
 
 # DB strategy
 create_dedicated_rds = true
-db_name              = "sansxvision"
+db_name              = "vale_vision"
 db_username          = "sansxvision_app"
 db_engine_version    = "8.0.45"
 # db_password: prefer passing by environment variable TF_VAR_db_password
@@ -42,6 +42,7 @@ email_reply_to        = "mauroslucios@gmail.com"
 email_support_address = "mauroslucios@gmail.com"
 frontend_public_url   = "https://sensxvisionplatform.com"
 api_public_url        = "https://api.sensxvisionplatform.com"
+image_source_buckets  = ["vale-vision-artifacts-dev", "vale-vision-raw-dev", "vale-vision-debug-dev"]
 
 # ECS image tags
 backend_image_tag   = "latest"
