@@ -1,0 +1,68 @@
+from pathlib import Path
+
+from app.contaminacao import avaliar_contaminacao
+from app.db_client import save_detection_event
+from app.s3_client import download_s3_object
+
+
+def inferir_materiais(local_image_path: Path) -> list[str]:
+    """
+    TODO:
+    Aqui entra a chamada real do seu modelo.
+
+    Exemplo futuro:
+        segmentador = SegmentadorContaminantes(...)
+        resultado = segmentador.predict(local_image_path)
+        return resultado.classes_detectadas
+
+    Por enquanto, este retorno é placeholder.
+    """
+    return []
+
+
+def inferir_grupo_por_nome_arquivo(filename: str) -> str:
+    nome = filename.lower()
+
+    if "madeira" in nome:
+        return "madeira"
+
+    if "plastico" in nome or "plástico" in nome:
+        return "plastico"
+
+    if "sucata" in nome:
+        return "sucata"
+
+    return "desconhecido"
+
+
+def process_image_from_s3(bucket: str, key: str):
+    local_path = download_s3_object(bucket=bucket, key=key)
+
+    grupo = inferir_grupo_por_nome_arquivo(local_path.name)
+
+    materiais_detectados = inferir_materiais(local_path)
+
+    decisao = avaliar_contaminacao(
+        grupo=grupo,
+        materiais_detectados=materiais_detectados,
+    )
+
+    payload = {
+        "status": "processed",
+        "file_path": local_path.name,
+        "s3_key_raw": key,
+        "s3_key_debug": None,
+        "grupo": grupo,
+        **decisao,
+        "metadata": {
+            "bucket": bucket,
+            "key": key,
+            "worker_version": "v1",
+        },
+    }
+
+    save_detection_event(payload)
+
+    print(f"[processor] Resultado salvo: {payload}")
+
+    return payload
