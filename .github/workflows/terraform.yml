@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AWS_REGION: sa-east-1
-      TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD }}
+      TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD_VISION }}
       TF_VAR_smtp_password: ${{ secrets.TF_VAR_SMTP_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AWS_REGION: sa-east-1
-      TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD }}
+      TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD_VISION }}
       TF_VAR_smtp_password: ${{ secrets.TF_VAR_SMTP_PASSWORD }}
     steps:
       - uses: actions/checkout@v4

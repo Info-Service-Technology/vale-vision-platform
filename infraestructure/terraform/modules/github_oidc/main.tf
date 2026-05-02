@@ -114,6 +114,7 @@ resource "aws_iam_policy" "github_actions" {
             "ecr:*",
             "events:*",
             "iam:GetRole",
+            "iam:GetRolePolicy",
             "iam:PassRole",
             "iam:CreateRole",
             "iam:DeleteRole",

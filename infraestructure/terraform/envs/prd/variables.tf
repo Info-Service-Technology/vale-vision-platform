@@ -229,6 +229,11 @@ variable "image_source_buckets" {
   default = []
 }
 
+variable "sqs_queue_url" {
+  type    = string
+  default = null
+}
+
 variable "email_enabled" {
   type    = bool
   default = true

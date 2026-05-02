@@ -103,6 +103,7 @@ module "ecs_app" {
   log_group_backend_name    = module.logs.backend_log_group_name
   log_group_inference_name  = module.logs.inference_log_group_name
   artifacts_bucket_name     = module.artifacts.bucket_name
+  sqs_queue_url             = var.sqs_queue_url
   image_source_buckets      = var.image_source_buckets
   db_host                   = local.db_endpoint
   db_port                   = local.db_port
