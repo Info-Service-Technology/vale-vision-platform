@@ -86,6 +86,11 @@ variable "artifacts_bucket_name" {
   type = string
 }
 
+variable "sqs_queue_url" {
+  type    = string
+  default = null
+}
+
 variable "image_source_buckets" {
   type    = list(string)
   default = []

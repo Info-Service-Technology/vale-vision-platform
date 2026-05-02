@@ -43,6 +43,7 @@ email_support_address = "mauroslucios@gmail.com"
 frontend_public_url   = "https://sensxvisionplatform.com"
 api_public_url        = "https://api.sensxvisionplatform.com"
 image_source_buckets  = ["vale-vision-artifacts-dev", "vale-vision-raw-dev", "vale-vision-debug-dev"]
+sqs_queue_url         = "https://sqs.sa-east-1.amazonaws.com/913524918638/sansx-vision-prd-inference-queue"
 
 # ECS image tags
 backend_image_tag   = "latest"
