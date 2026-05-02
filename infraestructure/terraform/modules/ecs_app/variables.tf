@@ -86,6 +86,11 @@ variable "artifacts_bucket_name" {
   type = string
 }
 
+variable "image_source_buckets" {
+  type    = list(string)
+  default = []
+}
+
 variable "db_host" {
   type    = string
   default = null
@@ -97,6 +102,10 @@ variable "db_port" {
 }
 
 variable "db_name" {
+  type = string
+}
+
+variable "db_username" {
   type = string
 }
 

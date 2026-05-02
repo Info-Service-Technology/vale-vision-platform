@@ -103,9 +103,11 @@ module "ecs_app" {
   log_group_backend_name    = module.logs.backend_log_group_name
   log_group_inference_name  = module.logs.inference_log_group_name
   artifacts_bucket_name     = module.artifacts.bucket_name
+  image_source_buckets      = var.image_source_buckets
   db_host                   = local.db_endpoint
   db_port                   = local.db_port
   db_name                   = var.db_name
+  db_username               = var.db_username
   db_secret_arn             = local.db_secret_arn
   smtp_secret_arn           = module.secrets.smtp_secret_arn
   frontend_public_url       = var.frontend_public_url

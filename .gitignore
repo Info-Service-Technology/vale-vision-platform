@@ -87,3 +87,7 @@ sql/**
 *.tfstate.*
 *.tfvars
 tfplan
+
+# Local AWS diagnostics
+task.json
+ecs describe-services*

@@ -40,30 +40,11 @@ resource "aws_iam_role" "task_role" {
   assume_role_policy = data.aws_iam_policy_document.ecs_task_assume_role.json
 }
 
-resource "aws_iam_role_policy" "task_access" {
-  name = "${var.name_prefix}-task-access"
-  role = aws_iam_role.task_role.id
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect = "Allow",
-        Action = ["s3:GetObject", "s3:PutObject", "s3:ListBucket"],
-        Resource = [
-          "arn:aws:s3:::${var.artifacts_bucket_name}",
-          "arn:aws:s3:::${var.artifacts_bucket_name}/*"
-        ]
-      },
-      {
-        Effect   = "Allow",
-        Action   = ["secretsmanager:GetSecretValue"],
-        Resource = compact([var.db_secret_arn, var.smtp_secret_arn])
-      }
-    ]
-  })
-}
-
 locals {
+  readable_bucket_names = distinct(concat([var.artifacts_bucket_name], var.image_source_buckets))
+  readable_bucket_arns  = [for bucket in local.readable_bucket_names : "arn:aws:s3:::${bucket}"]
+  readable_object_arns  = [for bucket in local.readable_bucket_names : "arn:aws:s3:::${bucket}/*"]
+
   backend_container = [{
     name         = "backend"
     image        = "${var.ecr_backend_url}:${var.backend_image_tag}"
@@ -74,6 +55,7 @@ locals {
       { name = "MYSQL_HOST", value = coalesce(var.db_host, "") },
       { name = "MYSQL_PORT", value = tostring(var.db_port) },
       { name = "MYSQL_DB", value = var.db_name },
+      { name = "MYSQL_USER", value = var.db_username },
       { name = "ARTIFACTS_BUCKET", value = var.artifacts_bucket_name },
       { name = "FRONTEND_PUBLIC_URL", value = var.frontend_public_url },
       { name = "API_PUBLIC_URL", value = var.api_public_url },
@@ -90,10 +72,16 @@ locals {
       { name = "SMTP_USE_SSL", value = tostring(var.smtp_use_ssl) },
       { name = "SMTP_TIMEOUT_SECONDS", value = tostring(var.smtp_timeout_seconds) }
     ]
-    secrets = var.smtp_secret_arn != null ? [{
-      name      = "SMTP_PASSWORD"
-      valueFrom = var.smtp_secret_arn
-    }] : []
+    secrets = concat(
+      var.db_secret_arn != null ? [{
+        name      = "MYSQL_PASSWORD"
+        valueFrom = "${var.db_secret_arn}:password::"
+      }] : [],
+      var.smtp_secret_arn != null ? [{
+        name      = "SMTP_PASSWORD"
+        valueFrom = var.smtp_secret_arn
+      }] : []
+    )
     logConfiguration = {
       logDriver = "awslogs",
       options = {
@@ -121,6 +109,38 @@ locals {
       }
     }
   }]
+}
+
+resource "aws_iam_role_policy" "task_access" {
+  name = "${var.name_prefix}-task-access"
+  role = aws_iam_role.task_role.id
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = ["s3:ListBucket"],
+        Resource = local.readable_bucket_arns
+      },
+      {
+        Effect   = "Allow",
+        Action   = ["s3:GetObject"],
+        Resource = local.readable_object_arns
+      },
+      {
+        Effect = "Allow",
+        Action = ["s3:PutObject"],
+        Resource = [
+          "arn:aws:s3:::${var.artifacts_bucket_name}/*"
+        ]
+      },
+      {
+        Effect   = "Allow",
+        Action   = ["secretsmanager:GetSecretValue"],
+        Resource = compact([var.db_secret_arn, var.smtp_secret_arn])
+      }
+    ]
+  })
 }
 
 resource "aws_ecs_task_definition" "backend" {

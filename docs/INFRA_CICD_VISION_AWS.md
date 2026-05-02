@@ -3,6 +3,16 @@
 ## Objetivo
 Este documento descreve a arquitetura de infraestrutura e o fluxo de CI/CD do `sansx-vision-platform`, seguindo o mesmo principio operacional do HDI: frontend buildado e servido pelo backend.
 
+## Estado Operacional Atual
+- deploy da aplicacao: automatico via GitHub Actions
+- Terraform: execucao manual apenas quando houver mudanca real de infraestrutura
+- frontend: buildado e embarcado na imagem do backend
+- ECS: responsavel por trocar a task da aplicacao a cada nova imagem publicada
+
+Para o historico do incidente que levou a esse modelo e os aprendizados operacionais, veja:
+- [`docs/POST_MORTEM_VISION_AWS_CICD_2026-05.md`](/home/mauroslucios/workspace/python/vale-vision-platform/docs/POST_MORTEM_VISION_AWS_CICD_2026-05.md)
+- [`docs/RUNBOOK_VISION_AWS_OPERACAO.md`](/home/mauroslucios/workspace/python/vale-vision-platform/docs/RUNBOOK_VISION_AWS_OPERACAO.md)
+
 ## Arquitetura Atual
 - `frontend`: React + Vite, usado separadamente no desenvolvimento
 - `backend`: FastAPI, exposto no ECS Fargate
@@ -45,8 +55,10 @@ Este documento descreve a arquitetura de infraestrutura e o fluxo de CI/CD do `s
 - executa `terraform fmt` e `terraform validate`
 
 ### `terraform.yml`
-- executa `terraform plan`
-- executa `terraform apply` com OIDC
+- executa infraestrutura somente por disparo manual
+- nao deve rodar automaticamente em `push`
+- nao deve rodar automaticamente em `pull_request`
+- existe para mudancas reais de infraestrutura, nao para deploy comum da aplicacao
 
 ### `deploy.yml`
 - builda o frontend
@@ -105,3 +117,6 @@ Todos os acessos devem terminar em HTTPS no dominio canonico `.com`.
 - curto prazo: manter a stack compartilhada quando isso acelerar o go-live
 - medio prazo: provisionar RDS proprio para o Vision se carga, criticidade ou compliance crescerem
 - para o caso atual do Vision, o Terraform ja suporta `create_ecs_cluster = true` para isolar o cluster sem redesenhar o restante da stack
+- operacionalmente, o caminho mais seguro e manter:
+  - `deploy.yml` para app
+  - `terraform.yml` apenas para mudancas de infra deliberadas

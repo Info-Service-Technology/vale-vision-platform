@@ -11,6 +11,10 @@ on:
       - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
+concurrency:
+  group: deploy-vale-vision-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   id-token: write
   contents: read
@@ -92,4 +96,11 @@ jobs:
             --cluster $ECS_CLUSTER \
             --service $ECS_INFERENCE_SERVICE \
             --force-new-deployment \
+            --region $AWS_REGION
+
+      - name: Wait for ECS services to stabilize
+        run: |
+          aws ecs wait services-stable \
+            --cluster $ECS_CLUSTER \
+            --services $ECS_BACKEND_SERVICE $ECS_INFERENCE_SERVICE \
             --region $AWS_REGION

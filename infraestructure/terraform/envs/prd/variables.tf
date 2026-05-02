@@ -224,6 +224,11 @@ variable "api_public_url" {
   default = "https://api.sensxvisionplatform.com"
 }
 
+variable "image_source_buckets" {
+  type    = list(string)
+  default = []
+}
+
 variable "email_enabled" {
   type    = bool
   default = true
