@@ -25,6 +25,7 @@ import { useLocale } from "../hooks/useLocale";
 import { Lang, supportedLanguages } from "../i18n/translations";
 import {
   readSystemSettings,
+  resolveAssetUrl,
   saveSystemSettings,
   type SystemSettings,
   validateImageFile,
@@ -41,7 +42,9 @@ export function SystemPage() {
   useEffect(() => {
     setConfig({
       ...readSystemSettings(),
-      company_logo_url: tenant?.company_logo_url || readSystemSettings().company_logo_url,
+      company_logo_url:
+        resolveAssetUrl(tenant?.company_logo_url) ||
+        resolveAssetUrl(readSystemSettings().company_logo_url),
     });
   }, [tenant?.company_logo_url]);
 
@@ -57,7 +60,10 @@ export function SystemPage() {
   const logoMutation = useMutation({
     mutationFn: async (file: File) => uploadCurrentTenantLogo(file),
     onSuccess: async (data) => {
-      setConfig((prev) => ({ ...prev, company_logo_url: data.company_logo_url }));
+      setConfig((prev) => ({
+        ...prev,
+        company_logo_url: resolveAssetUrl(data.company_logo_url),
+      }));
       await refreshMe();
       setSuccess(t("system_logo_saved_backend"));
       setError("");

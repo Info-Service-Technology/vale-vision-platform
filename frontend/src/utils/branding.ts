@@ -79,3 +79,21 @@ export function validateImageFile(file: File) {
     throw new Error("image_too_large");
   }
 }
+
+export function resolveAssetUrl(value?: string | null): string {
+  const normalized = String(value || "").trim();
+
+  if (!normalized) return "";
+
+  if (
+    normalized.startsWith("/") ||
+    normalized.startsWith("http://") ||
+    normalized.startsWith("https://") ||
+    normalized.startsWith("data:") ||
+    normalized.startsWith("blob:")
+  ) {
+    return normalized;
+  }
+
+  return `/${normalized.replace(/^\/+/, "")}`;
+}

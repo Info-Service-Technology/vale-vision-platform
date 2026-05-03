@@ -28,7 +28,7 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 
 import { Lang, supportedLanguages } from "../i18n/translations";
 import { useNavigate } from "react-router-dom";
-import { readSystemSettings } from "../utils/branding";
+import { readSystemSettings, resolveAssetUrl } from "../utils/branding";
 
 interface Props {
   userName: string;
@@ -70,7 +70,7 @@ function getTenantName() {
 function getUserAvatar() {
   try {
     const user = JSON.parse(localStorage.getItem("vale_user") || "{}");
-    return user.avatar_url || "";
+    return resolveAssetUrl(user.avatar_url);
   } catch {
     return "";
   }
