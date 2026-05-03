@@ -68,6 +68,9 @@ uploads/
 
 # Models
 models/
+!backend/app/models/
+!backend/app/models/__init__.py
+!backend/app/models/models.py
 *.pt
 *.onnx
 *.engine
