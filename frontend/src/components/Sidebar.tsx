@@ -19,10 +19,12 @@ import ReceiptIcon from "@mui/icons-material/Receipt";
 import HistoryIcon from "@mui/icons-material/History";
 import ApartmentIcon from "@mui/icons-material/Apartment";
 
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import logo from "../assets/Logo_Sensx.png";
 import { useAuth } from "../context/AuthContext";
 import { useLocale } from "../hooks/useLocale";
+import { resolveAssetUrl } from "../utils/branding";
 
 interface Props {
   role: string;
@@ -34,8 +36,25 @@ export function Sidebar({ role, onLogout }: Props) {
   const location = useLocation();
   const { isSuperAdmin, canWriteTenantData } = useAuth();
   const { t } = useLocale();
+  const [logoSrc, setLogoSrc] = useState(() => {
+    try {
+      const tenant = JSON.parse(localStorage.getItem("vale_tenant") || "{}");
+      return resolveAssetUrl(tenant.company_logo_url) || logo;
+    } catch {
+      return logo;
+    }
+  });
 
   const isTenantAdmin = role === "admin-tenant";
+
+  useEffect(() => {
+    try {
+      const tenant = JSON.parse(localStorage.getItem("vale_tenant") || "{}");
+      setLogoSrc(resolveAssetUrl(tenant.company_logo_url) || logo);
+    } catch {
+      setLogoSrc(logo);
+    }
+  }, [location.pathname]);
 
   const tenantMenu = [
     { label: t("dashboard"), icon: <DashboardIcon />, path: "/dashboard" },
@@ -114,15 +133,9 @@ export function Sidebar({ role, onLogout }: Props) {
       >
         <Box
           component="img"
-          src={(() => {
-            try {
-              const tenant = JSON.parse(localStorage.getItem("vale_tenant") || "{}");
-              return tenant.company_logo_url || logo;
-            } catch {
-              return logo;
-            }
-          })()}
+          src={logoSrc}
           alt="SensX"
+          onError={() => setLogoSrc(logo)}
           sx={{
             width: "100%",
             height: "auto",

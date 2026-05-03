@@ -8,7 +8,7 @@ import { Sidebar } from "../components/Sidebar";
 import { BillingStatusBanner } from "../components/BillingStatusBanner";
 import { useAuth } from "../context/AuthContext";
 import { useLocale } from "../hooks/useLocale";
-import { validateImageFile } from "../utils/branding";
+import { resolveAssetUrl, validateImageFile } from "../utils/branding";
 import { updateMyProfile, uploadMyAvatar } from "../services/api";
 
 type ProfileForm = {
@@ -33,7 +33,7 @@ export function ProfilePage() {
   useEffect(() => {
     setForm({
       display_name: user?.name || "",
-      avatar_url: user?.avatar_url || "",
+      avatar_url: resolveAssetUrl(user?.avatar_url),
       phone: user?.phone || "",
       about: user?.about || "",
     });
@@ -65,7 +65,7 @@ export function ProfilePage() {
     try {
       validateImageFile(file);
       const response = await uploadMyAvatar(file);
-      setForm((prev) => ({ ...prev, avatar_url: response.avatar_url }));
+      setForm((prev) => ({ ...prev, avatar_url: resolveAssetUrl(response.avatar_url) }));
       await refreshMe();
       setSuccess(t("profile_avatar_saved_backend"));
       setError("");
