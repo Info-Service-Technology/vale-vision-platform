@@ -19,4 +19,8 @@ resource "aws_db_instance" "this" {
   backup_retention_period = 7
   deletion_protection     = false
   publicly_accessible     = false
+
+  lifecycle {
+    ignore_changes = [password]
+  }
 }

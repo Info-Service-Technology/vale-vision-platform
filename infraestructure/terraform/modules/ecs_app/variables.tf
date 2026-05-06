@@ -181,3 +181,14 @@ variable "smtp_use_ssl" {
 variable "smtp_timeout_seconds" {
   type = number
 }
+
+variable "inference_capacity_provider_name" {
+  type        = string
+  description = "Capacity provider EC2 GPU para o serviço de inferência"
+  default     = null
+}
+
+variable "inference_gpu_desired_count" {
+  type    = number
+  default = 1
+}

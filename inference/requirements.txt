@@ -1,7 +1,10 @@
-boto3==1.34.162
-pymysql==1.1.1
-python-dotenv==1.0.1
+boto3
+pymysql
+python-dotenv
 ultralytics
 opencv-python-headless
 pillow
 numpy
+torch
+torchvision
+torchaudio

@@ -80,51 +80,84 @@ module "alb_app" {
 }
 
 module "ecs_app" {
-  source                    = "../../modules/ecs_app"
-  name_prefix               = var.name_prefix
-  region                    = var.aws_region
-  cluster_arn               = local.ecs_cluster_arn
-  cluster_name              = local.ecs_cluster_name
-  private_subnet_ids        = var.private_subnet_ids
-  ecs_security_group_id     = module.security.ecs_sg_id
-  target_group_backend_arn  = module.alb_app.backend_target_group_arn
-  ecr_backend_url           = module.ecr.backend_repository_url
-  ecr_inference_url         = module.ecr.inference_repository_url
-  backend_image_tag         = var.backend_image_tag
-  inference_image_tag       = var.inference_image_tag
-  backend_cpu               = var.backend_cpu
-  backend_memory            = var.backend_memory
-  inference_cpu             = var.inference_cpu
-  inference_memory          = var.inference_memory
-  backend_desired_count     = var.backend_desired_count
-  inference_desired_count   = var.inference_desired_count
-  backend_container_port    = local.backend_container_port
-  inference_container_port  = local.inference_container_port
-  log_group_backend_name    = module.logs.backend_log_group_name
-  log_group_inference_name  = module.logs.inference_log_group_name
-  artifacts_bucket_name     = module.artifacts.bucket_name
-  sqs_queue_url             = var.sqs_queue_url
-  image_source_buckets      = var.image_source_buckets
-  db_host                   = local.db_endpoint
-  db_port                   = local.db_port
-  db_name                   = var.db_name
-  db_username               = var.db_username
-  db_secret_arn             = local.db_secret_arn
-  smtp_secret_arn           = module.secrets.smtp_secret_arn
-  frontend_public_url       = var.frontend_public_url
-  api_public_url            = var.api_public_url
-  email_enabled             = var.email_enabled
-  email_from_name           = var.email_from_name
-  email_from_address        = var.email_from_address
-  email_reply_to            = var.email_reply_to
-  email_support_address     = var.email_support_address
-  email_debug_return_tokens = var.email_debug_return_tokens
-  smtp_host                 = var.smtp_host
-  smtp_port                 = var.smtp_port
-  smtp_username             = var.smtp_username
-  smtp_use_starttls         = var.smtp_use_starttls
-  smtp_use_ssl              = var.smtp_use_ssl
-  smtp_timeout_seconds      = var.smtp_timeout_seconds
+  source                           = "../../modules/ecs_app"
+  name_prefix                      = var.name_prefix
+  region                           = var.aws_region
+  cluster_arn                      = local.ecs_cluster_arn
+  cluster_name                     = local.ecs_cluster_name
+  private_subnet_ids               = var.private_subnet_ids
+  ecs_security_group_id            = module.security.ecs_sg_id
+  target_group_backend_arn         = module.alb_app.backend_target_group_arn
+  ecr_backend_url                  = module.ecr.backend_repository_url
+  ecr_inference_url                = module.ecr.inference_repository_url
+  backend_image_tag                = var.backend_image_tag
+  inference_image_tag              = var.inference_image_tag
+  backend_cpu                      = var.backend_cpu
+  backend_memory                   = var.backend_memory
+  inference_cpu                    = var.inference_cpu
+  inference_memory                 = var.inference_memory
+  backend_desired_count            = var.backend_desired_count
+  inference_desired_count          = var.inference_desired_count
+  backend_container_port           = local.backend_container_port
+  inference_container_port         = local.inference_container_port
+  log_group_backend_name           = module.logs.backend_log_group_name
+  log_group_inference_name         = module.logs.inference_log_group_name
+  artifacts_bucket_name            = module.artifacts.bucket_name
+  sqs_queue_url                    = var.sqs_queue_url
+  image_source_buckets             = var.image_source_buckets
+  db_host                          = local.db_endpoint
+  db_port                          = local.db_port
+  db_name                          = var.db_name
+  db_username                      = var.db_username
+  db_secret_arn                    = local.db_secret_arn
+  smtp_secret_arn                  = module.secrets.smtp_secret_arn
+  frontend_public_url              = var.frontend_public_url
+  api_public_url                   = var.api_public_url
+  email_enabled                    = var.email_enabled
+  email_from_name                  = var.email_from_name
+  email_from_address               = var.email_from_address
+  email_reply_to                   = var.email_reply_to
+  email_support_address            = var.email_support_address
+  email_debug_return_tokens        = var.email_debug_return_tokens
+  smtp_host                        = var.smtp_host
+  smtp_port                        = var.smtp_port
+  smtp_username                    = var.smtp_username
+  smtp_use_starttls                = var.smtp_use_starttls
+  smtp_use_ssl                     = var.smtp_use_ssl
+  smtp_timeout_seconds             = var.smtp_timeout_seconds
+  inference_capacity_provider_name = module.ecs_gpu_capacity.capacity_provider_name
+  inference_gpu_desired_count = var.inference_gpu_desired_count
+
+}
+
+module "ecs_gpu_capacity" {
+  source = "../../modules/ecs_gpu_capacity"
+
+  project_name       = "sansx-vision-prd"
+  cluster_name       = "sansx-vision-prd-cluster"
+  vpc_id             = "vpc-0822f063050b009b0"
+  subnet_ids         = ["subnet-0d906b6d7d3a10755", "subnet-07bbbcfff0a872b63"]
+  security_group_ids = ["sg-0d1905698252599e1"]
+
+  ami_id           = "ami-01623464a038bd55e"
+  instance_type    = "g4dn.xlarge"
+  min_size         = 0
+  max_size         = 1
+  desired_capacity = 1
+}
+
+module "vpc_endpoints" {
+  source = "../../modules/vpc_endpoints"
+
+  name_prefix = "sansx-vision-prd"
+  vpc_id      = "vpc-0822f063050b009b0"
+
+  private_subnet_ids = [
+    "subnet-0d906b6d7d3a10755",
+    "subnet-07bbbcfff0a872b63"
+  ]
+
+  ecs_security_group_id = "sg-0d1905698252599e1"
 }
 
 resource "aws_route53_record" "frontend" {
@@ -180,6 +213,16 @@ resource "aws_route53_record" "backend" {
     zone_id                = module.alb_app.alb_zone_id
     evaluate_target_health = true
   }
+}
+
+resource "aws_security_group_rule" "rds_from_bastion" {
+  type                     = "ingress"
+  from_port                = 3306
+  to_port                  = 3306
+  protocol                 = "tcp"
+  security_group_id        = "sg-0aeb8a9b25bdfb47e"
+  source_security_group_id = "sg-0ce1dae21d02face1"
+  description              = "Allow MySQL from bastion host"
 }
 
 module "github_oidc" {

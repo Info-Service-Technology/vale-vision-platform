@@ -19,11 +19,23 @@ sqs = boto3.client("sqs", region_name=AWS_REGION)
 def extract_s3_records(message_body: str):
     body = json.loads(message_body)
 
+    # Formato simples/manual:
+    # {"bucket":"...", "key":"..."}
+    if "bucket" in body and "key" in body:
+        return [
+            {
+                "s3": {
+                    "bucket": {"name": body["bucket"]},
+                    "object": {"key": body["key"]},
+                }
+            }
+        ]
+
     # Evento direto do S3
     if "Records" in body:
         return body["Records"]
 
-    # Caso venha encapsulado por SNS no futuro
+    # Caso venha encapsulado por SNS
     if "Message" in body:
         message = json.loads(body["Message"])
         return message.get("Records", [])
@@ -34,6 +46,9 @@ def extract_s3_records(message_body: str):
 def handle_message(message):
     receipt_handle = message["ReceiptHandle"]
     records = extract_s3_records(message["Body"])
+
+    if not records:
+        raise ValueError(f"Mensagem SQS sem Records S3 reconhecíveis: {message['Body']}")
 
     for record in records:
         bucket = record["s3"]["bucket"]["name"]
@@ -66,6 +81,7 @@ def main():
         )
 
         messages = response.get("Messages", [])
+        
 
         if not messages:
             continue
