@@ -308,3 +308,8 @@ variable "enable_github_oidc" {
   type    = bool
   default = false
 }
+
+
+variable "inference_gpu_desired_count" {
+  type = number
+}

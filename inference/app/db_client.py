@@ -5,15 +5,30 @@ import pymysql
 
 
 def get_connection():
-    return pymysql.connect(
-        host=os.getenv("DB_HOST"),
-        port=int(os.getenv("DB_PORT", "3306")),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD"),
-        database=os.getenv("DB_NAME"),
-        cursorclass=pymysql.cursors.DictCursor,
-        autocommit=True,
-    )
+    kwargs = {
+        "host": os.getenv("DB_HOST"),
+        "port": int(os.getenv("DB_PORT", "3306")),
+        "user": os.getenv("DB_USER"),
+        "password": os.getenv("DB_PASSWORD"),
+        "database": os.getenv("DB_NAME"),
+        "cursorclass": pymysql.cursors.DictCursor,
+        "autocommit": True,
+        "connect_timeout": 10,
+        "read_timeout": 60,
+        "write_timeout": 60,
+        "charset": "utf8mb4",
+    }
+
+    ssl_ca = os.getenv("DB_SSL_CA")
+    verify_identity = os.getenv("DB_SSL_VERIFY_IDENTITY", "true").lower() == "true"
+
+    if ssl_ca:
+        kwargs["ssl"] = {
+            "ca": ssl_ca,
+            "check_hostname": verify_identity,
+        }
+
+    return pymysql.connect(**kwargs)
 
 
 def save_detection_event(payload: dict):

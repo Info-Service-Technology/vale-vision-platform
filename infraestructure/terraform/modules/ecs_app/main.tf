@@ -3,6 +3,7 @@ data "aws_caller_identity" "current" {}
 data "aws_iam_policy_document" "ecs_task_assume_role" {
   statement {
     actions = ["sts:AssumeRole"]
+
     principals {
       type        = "Service"
       identifiers = ["ecs-tasks.amazonaws.com"]
@@ -23,12 +24,13 @@ resource "aws_iam_role_policy_attachment" "execution_policy" {
 resource "aws_iam_role_policy" "execution_secret_access" {
   name = "${var.name_prefix}-secret-access"
   role = aws_iam_role.task_execution.id
+
   policy = jsonencode({
-    Version = "2012-10-17",
+    Version = "2012-10-17"
     Statement = [
       {
-        Effect   = "Allow",
-        Action   = ["secretsmanager:GetSecretValue"],
+        Effect   = "Allow"
+        Action   = ["secretsmanager:GetSecretValue"]
         Resource = compact([var.db_secret_arn, var.smtp_secret_arn])
       }
     ]
@@ -98,18 +100,8 @@ locals {
     essential    = true
     portMappings = [{ containerPort = var.inference_container_port, hostPort = var.inference_container_port, protocol = "tcp" }]
     environment = [
-      { name = "AWS_REGION", value = var.region },
-      { name = "SQS_QUEUE_URL", value = coalesce(var.sqs_queue_url, "") },
-      { name = "DB_HOST", value = coalesce(var.db_host, "") },
-      { name = "DB_PORT", value = tostring(var.db_port) },
-      { name = "DB_USER", value = var.db_username },
-      { name = "DB_NAME", value = var.db_name },
       { name = "ARTIFACTS_BUCKET", value = var.artifacts_bucket_name }
     ]
-    secrets = var.db_secret_arn != null ? [{
-      name      = "DB_PASSWORD"
-      valueFrom = "${var.db_secret_arn}:password::"
-    }] : []
     logConfiguration = {
       logDriver = "awslogs",
       options = {
@@ -119,35 +111,102 @@ locals {
       }
     }
   }]
+
+  inference_gpu_container = [{
+    name         = "inference"
+    image        = "${var.ecr_inference_url}:${var.inference_image_tag}"
+    essential    = true
+    portMappings = [{ containerPort = var.inference_container_port, hostPort = var.inference_container_port, protocol = "tcp" }]
+
+    environment = [
+      { name = "AWS_REGION", value = var.region },
+      { name = "SQS_QUEUE_URL", value = var.sqs_queue_url },
+      { name = "DB_HOST", value = coalesce(var.db_host, "") },
+      { name = "DB_PORT", value = tostring(var.db_port) },
+      { name = "DB_USER", value = var.db_username },
+      { name = "DB_NAME", value = var.db_name },
+      { name = "S3_BUCKET", value = "vale-vision-artifacts-dev" },
+      { name = "S3_PREFIX_RAW", value = "raw/" },
+      { name = "S3_PREFIX_PROCESSED", value = "processed/" },
+      { name = "S3_PREFIX_RESOLVED", value = "resolved/" },
+      { name = "TENANT", value = "vale" },
+      { name = "CAMERA_NAME", value = "cam01" },
+      { name = "CONFIDENCE_THRESHOLD", value = "0.4" },
+      { name = "FILL_ALERT_THRESHOLD", value = "75" },
+      { name = "CONTAMINATION_ALERT_THRESHOLD", value = "5" }
+    ]
+
+    resourceRequirements = [
+      {
+        type  = "GPU"
+        value = "1"
+      }
+    ]
+
+    secrets = var.db_secret_arn != null ? [{
+      name      = "DB_PASSWORD"
+      valueFrom = "${var.db_secret_arn}:password::"
+    }] : []
+
+    logConfiguration = {
+      logDriver = "awslogs",
+      options = {
+        awslogs-group         = var.log_group_inference_name,
+        awslogs-region        = var.region,
+        awslogs-stream-prefix = "ecs-gpu"
+      }
+    }
+  }]
 }
 
 resource "aws_iam_role_policy" "task_access" {
   name = "${var.name_prefix}-task-access"
   role = aws_iam_role.task_role.id
+
   policy = jsonencode({
-    Version = "2012-10-17",
+    Version = "2012-10-17"
     Statement = [
       {
-        Effect   = "Allow",
-        Action   = ["s3:ListBucket"],
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket"]
         Resource = local.readable_bucket_arns
       },
       {
-        Effect   = "Allow",
-        Action   = ["s3:GetObject"],
+        Effect   = "Allow"
+        Action   = ["s3:GetObject"]
         Resource = local.readable_object_arns
       },
       {
-        Effect = "Allow",
-        Action = ["s3:PutObject"],
+        Effect = "Allow"
+        Action = ["s3:PutObject"]
         Resource = [
           "arn:aws:s3:::${var.artifacts_bucket_name}/*"
         ]
       },
       {
-        Effect   = "Allow",
-        Action   = ["secretsmanager:GetSecretValue"],
+        Effect   = "Allow"
+        Action   = ["secretsmanager:GetSecretValue"]
         Resource = compact([var.db_secret_arn, var.smtp_secret_arn])
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes",
+          "sqs:ChangeMessageVisibility"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ssmmessages:CreateControlChannel",
+          "ssmmessages:CreateDataChannel",
+          "ssmmessages:OpenControlChannel",
+          "ssmmessages:OpenDataChannel"
+        ]
+        Resource = "*"
       }
     ]
   })
@@ -173,6 +232,17 @@ resource "aws_ecs_task_definition" "inference" {
   execution_role_arn       = aws_iam_role.task_execution.arn
   task_role_arn            = aws_iam_role.task_role.arn
   container_definitions    = jsonencode(local.inference_container)
+}
+
+resource "aws_ecs_task_definition" "inference_gpu" {
+  family                   = "${var.name_prefix}-inference-gpu"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["EC2"]
+  cpu                      = tostring(var.inference_cpu)
+  memory                   = tostring(var.inference_memory)
+  execution_role_arn       = aws_iam_role.task_execution.arn
+  task_role_arn            = aws_iam_role.task_role.arn
+  container_definitions    = jsonencode(local.inference_gpu_container)
 }
 
 resource "aws_ecs_service" "backend" {
@@ -215,5 +285,27 @@ resource "aws_ecs_service" "inference" {
 
   deployment_minimum_healthy_percent = 50
   deployment_maximum_percent         = 200
+  enable_execute_command             = true
+}
+
+resource "aws_ecs_service" "inference_gpu" {
+  name            = "${var.name_prefix}-inference-gpu"
+  cluster         = var.cluster_arn
+  task_definition = aws_ecs_task_definition.inference_gpu.arn
+  desired_count = var.inference_gpu_desired_count
+
+  capacity_provider_strategy {
+    capacity_provider = var.inference_capacity_provider_name
+    weight            = 1
+  }
+
+  network_configuration {
+    subnets          = var.private_subnet_ids
+    security_groups  = [var.ecs_security_group_id]
+    assign_public_ip = false
+  }
+
+  deployment_minimum_healthy_percent = 0
+  deployment_maximum_percent         = 100
   enable_execute_command             = true
 }

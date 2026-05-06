@@ -28,10 +28,30 @@ services:
       - ./frontend/vite.config.ts:/app/vite.config.ts
     ports:
       - "5174:5174"
+    environment:
+      VITE_DEV_PROXY_TARGET: http://backend:8000
     depends_on:
       - backend
     networks:
       - valeVision
+
+  inference:
+    build:
+      context: ./inference
+      dockerfile: Dockerfile
+    env_file:
+      - ./inference/.env
+    command: python worker.py
+    volumes:
+      - ./inference:/app
+      - ../cameras:/data/cameras:ro
+      - ~/.aws:/root/.aws:ro
+    environment:
+      AWS_REGION: sa-east-1
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      - backend
+    network_mode: host
 
 networks:
   valeVision:

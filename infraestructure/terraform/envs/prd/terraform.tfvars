@@ -47,7 +47,9 @@ sqs_queue_url         = "https://sqs.sa-east-1.amazonaws.com/913524918638/sansx-
 
 # ECS image tags
 backend_image_tag   = "latest"
-inference_image_tag = "latest"
+inference_image_tag = "v5"
+inference_desired_count = 0
+inference_gpu_desired_count = 1
 
 # GitHub OIDC
 enable_github_oidc = true
