@@ -126,7 +126,7 @@ module "ecs_app" {
   smtp_use_ssl                     = var.smtp_use_ssl
   smtp_timeout_seconds             = var.smtp_timeout_seconds
   inference_capacity_provider_name = module.ecs_gpu_capacity.capacity_provider_name
-  inference_gpu_desired_count = var.inference_gpu_desired_count
+  inference_gpu_desired_count      = var.inference_gpu_desired_count
 
 }
 

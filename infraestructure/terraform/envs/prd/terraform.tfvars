@@ -46,9 +46,9 @@ image_source_buckets  = ["vale-vision-artifacts-dev", "vale-vision-raw-dev", "va
 sqs_queue_url         = "https://sqs.sa-east-1.amazonaws.com/913524918638/sansx-vision-prd-inference-queue"
 
 # ECS image tags
-backend_image_tag   = "latest"
-inference_image_tag = "v5"
-inference_desired_count = 0
+backend_image_tag           = "latest"
+inference_image_tag         = "v5"
+inference_desired_count     = 0
 inference_gpu_desired_count = 1
 
 # GitHub OIDC
