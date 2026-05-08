@@ -242,3 +242,48 @@ module "github_oidc" {
   ]
   allow_terraform_apply = true
 }
+
+resource "aws_sqs_queue" "inference" {
+  name = "${var.name_prefix}-inference-queue"
+}
+
+resource "aws_sqs_queue_policy" "inference_from_s3" {
+  queue_url = aws_sqs_queue.inference.url
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowS3SendMessage"
+        Effect = "Allow"
+
+        Principal = {
+          Service = "s3.amazonaws.com"
+        }
+
+        Action   = "sqs:SendMessage"
+        Resource = aws_sqs_queue.inference.arn
+
+        Condition = {
+          ArnEquals = {
+            "aws:SourceArn" = "arn:aws:s3:::vale-vision-artifacts-dev"
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_s3_bucket_notification" "raw_to_inference_sqs" {
+  bucket = "vale-vision-artifacts-dev"
+
+  queue {
+    queue_arn     = aws_sqs_queue.inference.arn
+    events        = ["s3:ObjectCreated:*"]
+    filter_prefix = "raw/"
+  }
+
+  depends_on = [
+    aws_sqs_queue_policy.inference_from_s3
+  ]
+}

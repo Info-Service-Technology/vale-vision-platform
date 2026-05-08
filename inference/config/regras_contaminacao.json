@@ -1,0 +1,24 @@
+{
+  "plastico": {
+    "aceita": [
+      "plastico"
+    ],
+    "descricao": "Caçamba de plástico"
+  },
+
+  "sucata": {
+    "aceita": [
+      "sucata",
+      "ferro"
+    ],
+    "descricao": "Caçamba de sucata metálica"
+  },
+
+  "papelao": {
+    "aceita": [
+      "papelao",
+      "papelão"
+    ],
+    "descricao": "Caçamba de papelão"
+  }
+}
