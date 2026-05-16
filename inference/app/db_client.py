@@ -31,49 +31,97 @@ def get_connection():
     return pymysql.connect(**kwargs)
 
 
+def _to_db_text(value):
+    if value is None:
+        return None
+
+    if isinstance(value, str):
+        return value
+
+    return json.dumps(value, ensure_ascii=False)
+
+
+def _to_db_text(value):
+    if value is None:
+        return None
+
+    if isinstance(value, str):
+        return value
+
+    return json.dumps(value, ensure_ascii=False)
+
+
 def save_detection_event(payload: dict):
     sql = """
         INSERT INTO events (
             data_ref,
             hora_ref,
             status,
+            processing_status,
             file_path,
+            s3_bucket,
             s3_key_raw,
             s3_key_debug,
             grupo,
-            materiais_detectados_raw,
+            materiais_detectados,
             contaminantes_detectados,
             alerta_contaminacao,
             tipo_contaminacao,
             severidade_contaminacao,
             cacamba_esperada,
             material_esperado,
-            metadata_json
+            fill_percent,
+            contamination_percent,
+            image_received_at
         )
         VALUES (
             CURDATE(),
             CURTIME(),
             %(status)s,
+            %(processing_status)s,
             %(file_path)s,
+            %(s3_bucket)s,
             %(s3_key_raw)s,
             %(s3_key_debug)s,
             %(grupo)s,
-            %(materiais_detectados_raw)s,
+            %(materiais_detectados)s,
             %(contaminantes_detectados)s,
             %(alerta_contaminacao)s,
             %(tipo_contaminacao)s,
             %(severidade_contaminacao)s,
             %(cacamba_esperada)s,
             %(material_esperado)s,
-            %(metadata_json)s
+            %(fill_percent)s,
+            %(contamination_percent)s,
+            NOW()
         )
     """
 
-    payload = {
+    metadata = payload.get("metadata", {})
+
+    payload_db = {
         **payload,
-        "metadata_json": json.dumps(payload.get("metadata", {}), ensure_ascii=False),
+        "processing_status": payload.get("processing_status", "processed"),
+        "s3_bucket": payload.get("s3_bucket") or metadata.get("bucket"),
+        "materiais_detectados": _to_db_text(
+            payload.get("materiais_detectados_raw")
+            or payload.get("materiais_detectados")
+            or ""
+        ),
+        "contaminantes_detectados": _to_db_text(
+            payload.get("contaminantes_detectados") or ""
+        ),
+        "fill_percent": payload.get("fill_percent") or 0.0,
+        "contamination_percent": payload.get("contamination_percent") or 0.0,
+        "severidade_contaminacao": payload.get(
+            "severidade_contaminacao",
+            "baixa"
+        ),
     }
+
+    payload_db.pop("metadata", None)
+    payload_db.pop("materiais_detectados_raw", None)
 
     with get_connection() as conn:
         with conn.cursor() as cursor:
-            cursor.execute(sql, payload)
+            cursor.execute(sql, payload_db)

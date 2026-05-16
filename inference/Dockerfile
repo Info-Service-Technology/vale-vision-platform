@@ -31,4 +31,4 @@ RUN grep -viE '^(torch|torchvision|torchaudio)([=<>~ ].*)?$' requirements.txt > 
 
 COPY . .
 
-CMD ["python", "worker.py"]
+CMD ["python", "run_service.py"]

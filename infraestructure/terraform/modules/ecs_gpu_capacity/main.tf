@@ -28,6 +28,16 @@ resource "aws_launch_template" "ecs_gpu" {
   image_id      = var.ami_id
   instance_type = var.instance_type
 
+  block_device_mappings {
+    device_name = "/dev/xvda"
+
+    ebs {
+      volume_size           = 100
+      volume_type           = "gp3"
+      delete_on_termination = true
+    }
+  }
+
   iam_instance_profile {
     name = aws_iam_instance_profile.ecs_gpu_instance_profile.name
   }

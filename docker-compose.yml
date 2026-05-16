@@ -11,6 +11,9 @@ services:
       - ~/.aws:/root/.aws:ro
     environment:
       AWS_REGION: sa-east-1
+      INFERENCE_SERVICE_SCHEME: http
+      INFERENCE_SERVICE_HOST: inference
+      INFERENCE_SERVICE_PORT: 8001
     ports:
       - "8000:8000"
     networks:
@@ -41,7 +44,7 @@ services:
       dockerfile: Dockerfile
     env_file:
       - ./inference/.env
-    command: python worker.py
+    command: python run_service.py
     volumes:
       - ./inference:/app
       - ../cameras:/data/cameras:ro
@@ -49,9 +52,12 @@ services:
     environment:
       AWS_REGION: sa-east-1
       PYTHONUNBUFFERED: "1"
+    ports:
+      - "8001:8001"
     depends_on:
       - backend
-    network_mode: host
+    networks:
+      - valeVision
 
 networks:
   valeVision:

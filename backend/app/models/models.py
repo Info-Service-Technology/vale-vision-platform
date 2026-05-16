@@ -61,6 +61,7 @@ class Event(Base):
     debug_path: Mapped[str | None] = mapped_column(String(512))
     status: Mapped[str | None] = mapped_column(String(64))
     fill_percent: Mapped[float | None] = mapped_column(Float)
+    contamination_percent: Mapped[float | None] = mapped_column(Float)
     materiais_detectados: Mapped[str | None] = mapped_column(Text)
     contaminantes_detectados: Mapped[str | None] = mapped_column(Text)
     alerta_contaminacao: Mapped[int | None] = mapped_column(Integer)

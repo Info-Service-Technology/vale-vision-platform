@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import account, admin_audit, admin_tenants, admin_users, auth, billing, events, health, tenants
+from app.api.routes import account, admin_audit, admin_tenants, admin_users, auth, billing, events, health, inference, tenants
 
 app = FastAPI(title="Vale Vision API", version="0.1.0")
 
@@ -29,6 +29,7 @@ app.include_router(admin_users.router, prefix="/api")
 app.include_router(billing.router, prefix="/api")
 app.include_router(tenants.router, prefix="/api")
 app.include_router(events.router, prefix="/api")
+app.include_router(inference.router, prefix="/api")
 
 base_dir = Path(__file__).resolve().parent
 static_dir = base_dir / "static"

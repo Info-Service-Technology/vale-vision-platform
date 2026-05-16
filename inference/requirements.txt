@@ -5,6 +5,8 @@ ultralytics
 opencv-python-headless
 pillow
 numpy
+fastapi
+uvicorn[standard]
 torch
 torchvision
 torchaudio

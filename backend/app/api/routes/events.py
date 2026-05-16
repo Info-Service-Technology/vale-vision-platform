@@ -89,6 +89,7 @@ def serialize_event(event: Event):
         "debug_path": event.debug_path,
         "status": event.status,
         "fill_percent": event.fill_percent,
+        "contamination_percent": getattr(event, "contamination_percent", None),
         "materiais_detectados": event.materiais_detectados,
         "contaminantes_detectados": event.contaminantes_detectados,
         "alerta_contaminacao": event.alerta_contaminacao,

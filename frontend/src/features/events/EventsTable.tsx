@@ -1,8 +1,8 @@
-import { Table, TableBody, TableCell, TableHead, TableRow, Button, Chip } from "@mui/material";
+import { Table, TableBody, TableCell, TableHead, TableRow, Button, Chip, Stack } from "@mui/material";
 import ImageIcon from "@mui/icons-material/Image";
 import { RemoveRedEye } from "@mui/icons-material";
 
-export function EventsTable({ rows, onOpenImage, t }: any) {
+export function EventsTable({ rows, onOpenImage, onResolve, t }: any) {
   return (
     <Table size="small">
       <TableHead>
@@ -11,6 +11,7 @@ export function EventsTable({ rows, onOpenImage, t }: any) {
           <TableCell>{t("status")}</TableCell>
           <TableCell>{t("volume")}</TableCell>
           <TableCell>{t("frame")}</TableCell>
+          <TableCell align="right">{t("actions")}</TableCell>
         </TableRow>
       </TableHead>
 
@@ -28,14 +29,26 @@ export function EventsTable({ rows, onOpenImage, t }: any) {
             </TableCell>
 
             <TableCell>
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={<ImageIcon />}
-                onClick={() => onOpenImage(event)}
-              >
-                <RemoveRedEye fontSize="small" color="secondary" />
-              </Button>
+              <Stack direction="row" spacing={1} justifyContent="flex-end">
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<ImageIcon />}
+                  onClick={() => onOpenImage(event)}
+                >
+                  <RemoveRedEye fontSize="small" color="secondary" />
+                </Button>
+                {onResolve && (
+                  <Button
+                    size="small"
+                    variant="contained"
+                    color="success"
+                    onClick={() => onResolve(event)}
+                  >
+                    {t("resolve")}
+                  </Button>
+                )}
+              </Stack>
             </TableCell>
           </TableRow>
         ))}

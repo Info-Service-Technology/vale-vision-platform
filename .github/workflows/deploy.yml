@@ -70,9 +70,7 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build -t $REGISTRY/$ECR_BACKEND_REPOSITORY:$IMAGE_TAG ./backend
-          docker tag $REGISTRY/$ECR_BACKEND_REPOSITORY:$IMAGE_TAG $REGISTRY/$ECR_BACKEND_REPOSITORY:latest
           docker push $REGISTRY/$ECR_BACKEND_REPOSITORY:$IMAGE_TAG
-          docker push $REGISTRY/$ECR_BACKEND_REPOSITORY:latest
 
       - name: Build and push inference image
         env:
@@ -80,27 +78,35 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build -t $REGISTRY/$ECR_INFERENCE_REPOSITORY:$IMAGE_TAG ./inference
-          docker tag $REGISTRY/$ECR_INFERENCE_REPOSITORY:$IMAGE_TAG $REGISTRY/$ECR_INFERENCE_REPOSITORY:latest
           docker push $REGISTRY/$ECR_INFERENCE_REPOSITORY:$IMAGE_TAG
-          docker push $REGISTRY/$ECR_INFERENCE_REPOSITORY:latest
 
-      - name: Force ECS deployment
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        working-directory: ./infraestructure/terraform/envs/prd
+        run: terraform init
+
+      - name: Terraform Format Check
+        working-directory: ./infraestructure/terraform/envs/prd
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Validate
+        working-directory: ./infraestructure/terraform/envs/prd
+        run: terraform validate
+
+      - name: Terraform Apply
+        working-directory: ./infraestructure/terraform/envs/prd
+        env:
+          TF_VAR_backend_image_tag: ${{ github.sha }}
+          TF_VAR_inference_image_tag: ${{ github.sha }}
+
+          # Terraform variable db_password recebe o secret específico do Vale Vision
+          TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD_VISION }}
+
+          # SMTP compartilhado
+          TF_VAR_smtp_password: ${{ secrets.TF_VAR_SMTP_PASSWORD }}
+
         run: |
-          aws ecs update-service \
-            --cluster $ECS_CLUSTER \
-            --service $ECS_BACKEND_SERVICE \
-            --force-new-deployment \
-            --region $AWS_REGION
-
-          aws ecs update-service \
-            --cluster $ECS_CLUSTER \
-            --service $ECS_INFERENCE_SERVICE \
-            --force-new-deployment \
-            --region $AWS_REGION
-
-      - name: Wait for ECS services to stabilize
-        run: |
-          aws ecs wait services-stable \
-            --cluster $ECS_CLUSTER \
-            --services $ECS_BACKEND_SERVICE \
-            --region $AWS_REGION
+          terraform apply -auto-approve -input=false
+        

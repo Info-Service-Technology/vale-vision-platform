@@ -157,7 +157,10 @@ module "vpc_endpoints" {
     "subnet-07bbbcfff0a872b63"
   ]
 
-  ecs_security_group_id = "sg-0d1905698252599e1"
+  ecs_security_group_ids = [
+    "sg-0d1905698252599e1", # Vale Vision
+    "sg-0ecc97b7f177252b5"  # HDI
+  ]
 }
 
 resource "aws_route53_record" "frontend" {
@@ -241,4 +244,49 @@ module "github_oidc" {
     module.ecs_app.inference_service_arn,
   ]
   allow_terraform_apply = true
+}
+
+resource "aws_sqs_queue" "inference" {
+  name = "${var.name_prefix}-inference-queue"
+}
+
+resource "aws_sqs_queue_policy" "inference_from_s3" {
+  queue_url = aws_sqs_queue.inference.url
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowS3SendMessage"
+        Effect = "Allow"
+
+        Principal = {
+          Service = "s3.amazonaws.com"
+        }
+
+        Action   = "sqs:SendMessage"
+        Resource = aws_sqs_queue.inference.arn
+
+        Condition = {
+          ArnEquals = {
+            "aws:SourceArn" = "arn:aws:s3:::vale-vision-artifacts-dev"
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_s3_bucket_notification" "raw_to_inference_sqs" {
+  bucket = "vale-vision-artifacts-dev"
+
+  queue {
+    queue_arn     = aws_sqs_queue.inference.arn
+    events        = ["s3:ObjectCreated:*"]
+    filter_prefix = "raw/"
+  }
+
+  depends_on = [
+    aws_sqs_queue_policy.inference_from_s3
+  ]
 }
