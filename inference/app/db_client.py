@@ -70,6 +70,8 @@ def save_detection_event(payload: dict):
             severidade_contaminacao,
             cacamba_esperada,
             material_esperado,
+            fill_percent,
+            contamination_percent,
             image_received_at
         )
         VALUES (
@@ -89,6 +91,8 @@ def save_detection_event(payload: dict):
             %(severidade_contaminacao)s,
             %(cacamba_esperada)s,
             %(material_esperado)s,
+            %(fill_percent)s,
+            %(contamination_percent)s,
             NOW()
         )
     """
@@ -97,29 +101,26 @@ def save_detection_event(payload: dict):
 
     payload_db = {
         **payload,
-        "processing_status": payload.get(
-            "processing_status",
-            "processed"
-        ),
-        "s3_bucket": payload.get("s3_bucket")
-            or metadata.get("bucket"),
-
+        "processing_status": payload.get("processing_status", "processed"),
+        "s3_bucket": payload.get("s3_bucket") or metadata.get("bucket"),
         "materiais_detectados": _to_db_text(
             payload.get("materiais_detectados_raw")
             or payload.get("materiais_detectados")
             or ""
         ),
-
         "contaminantes_detectados": _to_db_text(
-            payload.get("contaminantes_detectados")
-            or ""
+            payload.get("contaminantes_detectados") or ""
         ),
-
+        "fill_percent": payload.get("fill_percent") or 0.0,
+        "contamination_percent": payload.get("contamination_percent") or 0.0,
         "severidade_contaminacao": payload.get(
             "severidade_contaminacao",
             "baixa"
         ),
     }
+
+    payload_db.pop("metadata", None)
+    payload_db.pop("materiais_detectados_raw", None)
 
     with get_connection() as conn:
         with conn.cursor() as cursor:
