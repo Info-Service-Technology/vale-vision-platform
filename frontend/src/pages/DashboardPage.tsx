@@ -193,7 +193,12 @@ export function DashboardPage() {
                 <Button variant="outlined">{t("export")}</Button>
               </Stack>
 
-              <EventsTable rows={rows} onOpenImage={openImage} t={t} />
+              <EventsTable
+                rows={rows}
+                onOpenImage={openImage}
+                onResolve={(event: any) => setResolveDialog({ open: true, event })}
+                t={t}
+              />
 
               <TablePagination
                 component="div"

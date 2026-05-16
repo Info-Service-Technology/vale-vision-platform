@@ -185,6 +185,7 @@
   "user": "User",
   "created_at": "Created at",
   "actions": "Actions",
+  "resolve": "Resolve",
   "edit": "Edit",
   "delete": "Delete",
   "activate": "Activate",
