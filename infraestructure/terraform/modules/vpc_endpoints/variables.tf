@@ -12,7 +12,7 @@ variable "private_subnet_ids" {
   description = "List of private subnet IDs where the endpoints will be created"
 }
 
-variable "ecs_security_group_id" {
-  type = string
-  description = "ID of the security group used by ECS tasks/instances to allow access to VPC endpoints"
+variable "ecs_security_group_ids" {
+  description = "Security groups allowed to access VPC endpoints over HTTPS"
+  type        = list(string)
 }

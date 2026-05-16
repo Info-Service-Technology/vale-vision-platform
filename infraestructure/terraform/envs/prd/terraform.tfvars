@@ -47,7 +47,7 @@ sqs_queue_url         = "https://sqs.sa-east-1.amazonaws.com/913524918638/sansx-
 
 # ECS image tags
 backend_image_tag           = "latest"
-inference_image_tag         = "v7"
+inference_image_tag         = "v11"
 inference_desired_count     = 0
 inference_gpu_desired_count = 1
 
@@ -55,3 +55,4 @@ inference_gpu_desired_count = 1
 enable_github_oidc = true
 github_org         = "Info-Service-Technology"
 github_repo        = "vale-vision-platform"
+

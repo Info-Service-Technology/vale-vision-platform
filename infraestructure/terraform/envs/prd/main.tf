@@ -157,7 +157,10 @@ module "vpc_endpoints" {
     "subnet-07bbbcfff0a872b63"
   ]
 
-  ecs_security_group_id = "sg-0d1905698252599e1"
+  ecs_security_group_ids = [
+    "sg-0d1905698252599e1", # Vale Vision
+    "sg-0ecc97b7f177252b5"  # HDI
+  ]
 }
 
 resource "aws_route53_record" "frontend" {

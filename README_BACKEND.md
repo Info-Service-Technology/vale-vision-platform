@@ -127,6 +127,21 @@ requests.post(
 )
 ```
 
+## Proxy para o serviço de inferência
+
+O backend expõe rotas que fazem proxy para o serviço de inferência local:
+
+- `POST /api/inference/ftp/sync` — dispara um ciclo FTP no `inference`.
+- `GET /api/inference/ftp/health` — verifica se o serviço de inferência está online.
+
+As configurações do serviço de inferência devem estar em:
+
+- `INFERENCE_SERVICE_SCHEME` (`http`)
+- `INFERENCE_SERVICE_HOST` (`localhost` ou nome do host/container)
+- `INFERENCE_SERVICE_PORT` (`8001`)
+
+Se estiver usando `docker-compose`, defina `INFERENCE_SERVICE_HOST=inference` para que o backend resolva o serviço pelo nome do container.
+
 ## Variáveis de ambiente
 
 Exemplo de `.env.example`:
