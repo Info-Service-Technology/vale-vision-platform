@@ -64,8 +64,11 @@ class Event(Base):
     contamination_percent: Mapped[float | None] = mapped_column(Float)
     materiais_detectados: Mapped[str | None] = mapped_column(Text)
     contaminantes_detectados: Mapped[str | None] = mapped_column(Text)
+    material_detectado: Mapped[str | None] = mapped_column(String(255))
     alerta_contaminacao: Mapped[int | None] = mapped_column(Integer)
     tipo_contaminacao: Mapped[str | None] = mapped_column(String(255))
+    severidade_contaminacao: Mapped[str | None] = mapped_column(String(255))
+    grupo: Mapped[str | None] = mapped_column(String(255))
     cacamba_esperada: Mapped[str | None] = mapped_column(String(255))
     material_esperado: Mapped[str | None] = mapped_column(String(255))
     s3_bucket: Mapped[str | None] = mapped_column(String(255))
@@ -76,6 +79,7 @@ class Event(Base):
     resolved_at: Mapped[DateTime | None] = mapped_column(DateTime)
     resolved_by: Mapped[int | None] = mapped_column(Integer)
     resolved_reason: Mapped[str | None] = mapped_column(Text)
+    resolved_s3_key: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[DateTime | None] = mapped_column(DateTime)
 
 

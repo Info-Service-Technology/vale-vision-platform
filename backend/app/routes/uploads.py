@@ -12,7 +12,7 @@ from werkzeug.utils import secure_filename
 uploads_bp = Blueprint("uploads", __name__)
 
 AWS_REGION = os.getenv("AWS_REGION", "sa-east-1")
-S3_BUCKET = os.getenv("S3_BUCKET", "vale-vision-artifacts-dev")
+S3_BUCKET = os.getenv("S3_BUCKET", "sansx-vision-prd")
 SQS_QUEUE_URL = os.getenv("SQS_QUEUE_URL")
 
 s3_client = boto3.client("s3", region_name=AWS_REGION)

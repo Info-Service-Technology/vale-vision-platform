@@ -5,16 +5,18 @@ from datetime import datetime
 from ftplib import FTP, error_perm
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import boto3
 
 AWS_REGION = os.getenv("AWS_REGION", "sa-east-1")
+APP_TIMEZONE = os.getenv("APP_TIMEZONE", "America/Sao_Paulo")
 FTP_HOST = os.getenv("FTP_HOST")
 FTP_PORT = int(os.getenv("FTP_PORT", "21"))
 FTP_USER = os.getenv("FTP_USER")
 FTP_PASSWORD = os.getenv("FTP_PASSWORD")
 FTP_BASE_DIR = os.getenv("FTP_BASE_DIR", "/upload")
-FTP_CAMERA_DIRS = os.getenv("FTP_CAMERA_DIRS", "cammadeira,camplastico,camsucata")
+FTP_CAMERA_DIRS = os.getenv("FTP_CAMERA_DIRS", "cammadeira,campapelao,camplastico,camsucata")
 FTP_POLL_INTERVAL_SECONDS = int(os.getenv("FTP_POLL_INTERVAL_SECONDS", "60"))
 FTP_DOWNLOAD_DIR = Path(os.getenv("FTP_DOWNLOAD_DIR", "/tmp/ftp_download"))
 FTP_STATE_FILE = Path(os.getenv("FTP_STATE_FILE", "/tmp/ftp_processed.json"))
@@ -24,9 +26,21 @@ FTP_PROCESSED_SUBDIR = os.getenv("FTP_PROCESSED_SUBDIR", "processed")
 S3_BUCKET = os.getenv("S3_BUCKET")
 S3_PREFIX_RAW = os.getenv("S3_PREFIX_RAW", "raw/")
 TENANT = os.getenv("TENANT")
+S3_INCLUDE_TENANT_IN_KEY = os.getenv("S3_INCLUDE_TENANT_IN_KEY", "true").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+}
 VALID_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"}
 
 s3 = boto3.client("s3", region_name=AWS_REGION)
+
+
+def _current_time() -> datetime:
+    try:
+        return datetime.now(ZoneInfo(APP_TIMEZONE))
+    except Exception:
+        return datetime.utcnow()
 
 
 def _load_state() -> dict[str, Any]:
@@ -64,14 +78,14 @@ def _build_s3_prefix(prefix: str) -> str:
             raise RuntimeError("TENANT precisa estar configurado quando S3_PREFIX_RAW usa {tenant}.")
         return base.format(tenant=TENANT)
 
-    if TENANT:
+    if TENANT and S3_INCLUDE_TENANT_IN_KEY:
         return f"{base}/tenant={TENANT}"
 
     return base
 
 
 def _build_s3_key(camera_name: str, filename: str) -> str:
-    now = datetime.utcnow()
+    now = _current_time()
     prefix = _build_s3_prefix(S3_PREFIX_RAW)
     return (
         f"{prefix}/camera={camera_name}"
@@ -166,7 +180,7 @@ def _process_camera_directory(ftp: FTP, state: dict[str, Any], camera_name: str)
             _upload_to_s3(local_path, S3_BUCKET, s3_key)
 
             processed_paths[remote_path] = {
-                "uploaded_at": datetime.utcnow().isoformat(),
+                "uploaded_at": _current_time().isoformat(),
                 "s3_key": s3_key,
                 "camera": camera_name,
             }

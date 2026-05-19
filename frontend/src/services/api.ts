@@ -155,6 +155,9 @@ export async function fetchMe() {
       plan_slug?: string | null;
       platform_title?: string;
     } | null;
+    capabilities?: {
+      allow_manual_resolution?: boolean;
+    };
   }>("/account/me");
 
   return data;

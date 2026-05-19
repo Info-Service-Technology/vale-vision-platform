@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
     libgl1 \
     libgomp1 \
+    openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
@@ -30,5 +31,6 @@ RUN grep -viE '^(torch|torchvision|torchaudio)([=<>~ ].*)?$' requirements.txt > 
     && pip install --no-cache-dir -r /tmp/requirements-no-torch.txt
 
 COPY . .
+RUN chmod +x /app/run_service.sh
 
 CMD ["python", "run_service.py"]

@@ -38,7 +38,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -r inference/requirements.txt
-      - run: python -m compileall inference/src
+      - run: python -m compileall inference/app inference/run_service.py inference/worker.py inference/ftp_watcher.py
 
   terraform:
     runs-on: ubuntu-latest

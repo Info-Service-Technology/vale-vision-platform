@@ -1,5 +1,5 @@
 from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+from urllib.request import Request as UrllibRequest, urlopen
 import json
 
 from fastapi import APIRouter, HTTPException, Request
@@ -24,7 +24,7 @@ def _forward_request(path: str, method: str = "GET", payload: dict | None = None
     elif method == "POST":
         data = b""
 
-    request = Request(url, data=data, headers=headers, method=method)
+    request = UrllibRequest(url, data=data, headers=headers, method=method)
     try:
         with urlopen(request, timeout=30) as response:
             body = response.read().decode("utf-8")

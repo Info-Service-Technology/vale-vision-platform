@@ -20,5 +20,11 @@
       "papelão"
     ],
     "descricao": "Caçamba de papelão"
+  },
+  "madeira": {
+    "aceita": [
+      "madeira"
+    ],
+    "descricao": "Caçamba de madeira"
   }
 }

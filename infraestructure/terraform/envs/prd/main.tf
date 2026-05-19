@@ -269,7 +269,7 @@ resource "aws_sqs_queue_policy" "inference_from_s3" {
 
         Condition = {
           ArnEquals = {
-            "aws:SourceArn" = "arn:aws:s3:::vale-vision-artifacts-dev"
+            "aws:SourceArn" = "arn:aws:s3:::sansx-vision-prd"
           }
         }
       }
@@ -278,7 +278,7 @@ resource "aws_sqs_queue_policy" "inference_from_s3" {
 }
 
 resource "aws_s3_bucket_notification" "raw_to_inference_sqs" {
-  bucket = "vale-vision-artifacts-dev"
+  bucket = "sansx-vision-prd"
 
   queue {
     queue_arn     = aws_sqs_queue.inference.arn

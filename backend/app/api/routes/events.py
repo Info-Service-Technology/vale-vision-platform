@@ -38,6 +38,12 @@ def apply_tenant_scope(query, user: dict):
 
 
 def ensure_user_can_resolve(user: dict, db: Session):
+    if not settings.allow_manual_resolution:
+        raise HTTPException(
+            status_code=403,
+            detail="Resolução manual desabilitada neste ambiente",
+        )
+
     if user.get("role") == "viewer":
         raise HTTPException(
             status_code=403,
@@ -88,12 +94,15 @@ def serialize_event(event: Event):
         "file_path": event.file_path,
         "debug_path": event.debug_path,
         "status": event.status,
+        "grupo": getattr(event, "grupo", None),
         "fill_percent": event.fill_percent,
         "contamination_percent": getattr(event, "contamination_percent", None),
         "materiais_detectados": event.materiais_detectados,
+        "material_detectado": getattr(event, "material_detectado", None),
         "contaminantes_detectados": event.contaminantes_detectados,
         "alerta_contaminacao": event.alerta_contaminacao,
         "tipo_contaminacao": event.tipo_contaminacao,
+        "severidade_contaminacao": getattr(event, "severidade_contaminacao", None),
         "cacamba_esperada": event.cacamba_esperada,
         "material_esperado": event.material_esperado,
         "s3_bucket": event.s3_bucket,
@@ -103,6 +112,9 @@ def serialize_event(event: Event):
         if event.image_received_at
         else None,
         "processing_status": event.processing_status,
+        "resolved_at": event.resolved_at.isoformat() if event.resolved_at else None,
+        "resolved_reason": event.resolved_reason,
+        "resolved_s3_key": getattr(event, "resolved_s3_key", None),
     }
 
 
@@ -120,7 +132,11 @@ def list_events(
     query = apply_tenant_scope(query, user)
 
     if active_only:
-        query = query.filter(Event.status != "resolved")
+        # Operational screens should show only unresolved contamination backlog.
+        query = query.filter(
+            Event.status != "resolved",
+            Event.alerta_contaminacao == 1,
+        )
 
     query = apply_material_filter(query, container)
 
@@ -308,7 +324,11 @@ def list_resolved_events(
     query = db.query(Event)
     query = apply_tenant_scope(query, user)
 
-    query = query.filter(Event.status == "resolved")
+    # Resolved items must be truly resolved, not only flagged with status.
+    query = query.filter(
+        Event.status == "resolved",
+        Event.resolved_at.isnot(None),
+    )
 
     if search:
         like = f"%{search}%"

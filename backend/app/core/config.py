@@ -13,9 +13,11 @@ class Settings(BaseSettings):
     aws_region: str = "sa-east-1"
     s3_bucket_raw: str = ""
     s3_bucket_debug: str = ""
+    s3_bucket_uploads: str = ""
     inference_service_scheme: str = "http"
     inference_service_host: str = "localhost"
     inference_service_port: int = 8001
+    allow_manual_resolution: bool = True
     jwt_secret_key: str = "trocar-em-producao"
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 480
