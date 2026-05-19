@@ -115,6 +115,14 @@ resource "aws_iam_policy" "github_actions" {
             "events:*",
             "iam:GetRole",
             "iam:GetRolePolicy",
+            "iam:GetInstanceProfile",
+            "iam:CreateInstanceProfile",
+            "iam:DeleteInstanceProfile",
+            "iam:AddRoleToInstanceProfile",
+            "iam:RemoveRoleFromInstanceProfile",
+            "iam:TagInstanceProfile",
+            "iam:UntagInstanceProfile",
+            "iam:ListInstanceProfilesForRole",
             "iam:PassRole",
             "iam:CreateRole",
             "iam:DeleteRole",
@@ -138,6 +146,7 @@ resource "aws_iam_policy" "github_actions" {
             "rds:*",
             "route53:*",
             "s3:*",
+            "sqs:*",
             "secretsmanager:*"
           ]
           Resource = "*"
