@@ -107,6 +107,7 @@ resource "aws_iam_policy" "github_actions" {
           Action = [
             "acm:*",
             "application-autoscaling:*",
+            "autoscaling:*",
             "cloudwatch:*",
             "ec2:*",
             "ecs:*",
