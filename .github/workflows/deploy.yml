@@ -69,16 +69,28 @@ jobs:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $REGISTRY/$ECR_BACKEND_REPOSITORY:$IMAGE_TAG ./backend
-          docker push $REGISTRY/$ECR_BACKEND_REPOSITORY:$IMAGE_TAG
+          if aws ecr describe-images \
+            --repository-name "$ECR_BACKEND_REPOSITORY" \
+            --image-ids imageTag="$IMAGE_TAG" >/dev/null 2>&1; then
+            echo "Backend image $ECR_BACKEND_REPOSITORY:$IMAGE_TAG already exists. Skipping push."
+          else
+            docker build -t $REGISTRY/$ECR_BACKEND_REPOSITORY:$IMAGE_TAG ./backend
+            docker push $REGISTRY/$ECR_BACKEND_REPOSITORY:$IMAGE_TAG
+          fi
 
       - name: Build and push inference image
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $REGISTRY/$ECR_INFERENCE_REPOSITORY:$IMAGE_TAG ./inference
-          docker push $REGISTRY/$ECR_INFERENCE_REPOSITORY:$IMAGE_TAG
+          if aws ecr describe-images \
+            --repository-name "$ECR_INFERENCE_REPOSITORY" \
+            --image-ids imageTag="$IMAGE_TAG" >/dev/null 2>&1; then
+            echo "Inference image $ECR_INFERENCE_REPOSITORY:$IMAGE_TAG already exists. Skipping push."
+          else
+            docker build -t $REGISTRY/$ECR_INFERENCE_REPOSITORY:$IMAGE_TAG ./inference
+            docker push $REGISTRY/$ECR_INFERENCE_REPOSITORY:$IMAGE_TAG
+          fi
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
