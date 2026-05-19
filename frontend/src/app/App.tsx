@@ -2,7 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { CircularProgress, Stack } from "@mui/material";
 import { LoginPage } from "../pages/LoginPage";
 import { DashboardPage } from "../pages/DashboardPage";
-import { AuditPage } from "../pages/AuditPage";
+import { ResolvedItemsPage } from "../pages/ResolvedItemsPage";
 import { AdminUsersPage } from "../pages/AdminUsersPage";
 import { AdminAuditPage } from "../pages/AdminAuditPage";
 import { HelpPage } from "../pages/HelpPage";
@@ -83,11 +83,12 @@ export function App() {
           </RequireAuth>
         }
       />
+      <Route path="/audit" element={<Navigate to="/admin/audit" replace />} />
       <Route
-        path="/audit"
+        path="/itens-resolvidos"
         element={
           <RequireAuth>
-            <AuditPage />
+            <ResolvedItemsPage />
           </RequireAuth>
         }
       />

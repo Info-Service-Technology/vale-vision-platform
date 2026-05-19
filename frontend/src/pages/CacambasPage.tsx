@@ -24,7 +24,6 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import VisibilityIcon from '@mui/icons-material/Visibility';
 import ImageIcon from "@mui/icons-material/Image";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -37,11 +36,12 @@ import { useLocale } from "../hooks/useLocale";
 import { fetchEvents, fetchImageUrl, fetchMetrics, resolveEvent } from "../services/api";
 import { VisionEvent } from "../types/events";
 import { RemoveRedEye } from "@mui/icons-material";
+import { formatEventText } from "../features/events/formatEventField";
 
 export function CacambasPage() {
   const queryClient = useQueryClient();
   const { t, lang, setLang } = useLocale();
-  const { user, logout, canWriteTenantData, isSuperAdmin } = useAuth();
+  const { user, logout, canWriteTenantData, isSuperAdmin, allowManualResolution } = useAuth();
   const [success, setSuccess] = useState("");
   const [resolving, setResolving] = useState(false);
   const [imageUrlCache, setImageUrlCache] = useState<Record<number, string>>({});
@@ -114,12 +114,13 @@ export function CacambasPage() {
 
     queryClient.invalidateQueries({ queryKey: ["cacambas"] });
     queryClient.invalidateQueries({ queryKey: ["metrics"] });
+    queryClient.invalidateQueries({ queryKey: ["resolved-events"] });
   }
 
   const rows = eventsQuery.data?.items || [];
   const total = eventsQuery.data?.total || 0;
   const canResolveMonitoring =
-    isSuperAdmin || (user?.role !== "viewer" && canWriteTenantData);
+    allowManualResolution && (isSuperAdmin || (user?.role !== "viewer" && canWriteTenantData));
 
   return (
     <Box sx={{ display: "flex" }}>
@@ -178,6 +179,7 @@ export function CacambasPage() {
                   sx={{ minWidth: 180 }}
                 >
                   <MenuItem value="all">Todas</MenuItem>
+                  <MenuItem value="papelao">Papelão</MenuItem>
                   <MenuItem value="plastico">Plástico</MenuItem>
                   <MenuItem value="madeira">Madeira</MenuItem>
                   <MenuItem value="sucata">Sucata</MenuItem>
@@ -219,8 +221,8 @@ export function CacambasPage() {
                         <TableCell sx={{ fontWeight: 600 }}>{event.hora_ref || "-"}</TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>{event.cacamba_esperada || "-"}</TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>{event.material_esperado || "-"}</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>{event.materiais_detectados || "-"}</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>{event.contaminantes_detectados || "-"}</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>{formatEventText(event.materiais_detectados)}</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>{formatEventText(event.contaminantes_detectados)}</TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>
                           <Chip
                             size="small"
@@ -326,10 +328,10 @@ export function CacambasPage() {
                   <strong>Material esperado:</strong> {selectedEvent.material_esperado || "-"}
                 </Typography>
                 <Typography>
-                  <strong>Material detectado:</strong> {selectedEvent.materiais_detectados || "-"}
+                  <strong>Material detectado:</strong> {formatEventText(selectedEvent.materiais_detectados)}
                 </Typography>
                 <Typography>
-                  <strong>Contaminante:</strong> {selectedEvent.contaminantes_detectados || "-"}
+                  <strong>Contaminante:</strong> {formatEventText(selectedEvent.contaminantes_detectados)}
                 </Typography>
                 <Typography>
                   <strong>Ocupação:</strong> {(selectedEvent.fill_percent ?? 0).toFixed(1)}%

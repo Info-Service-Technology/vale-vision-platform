@@ -41,72 +41,29 @@ def _to_db_text(value):
     return json.dumps(value, ensure_ascii=False)
 
 
-def _to_db_text(value):
-    if value is None:
-        return None
-
-    if isinstance(value, str):
-        return value
-
-    return json.dumps(value, ensure_ascii=False)
+def _load_event_columns(cursor):
+    cursor.execute("SHOW COLUMNS FROM events")
+    rows = cursor.fetchall()
+    return {row["Field"] for row in rows}
 
 
 def save_detection_event(payload: dict):
-    sql = """
-        INSERT INTO events (
-            data_ref,
-            hora_ref,
-            status,
-            processing_status,
-            file_path,
-            s3_bucket,
-            s3_key_raw,
-            s3_key_debug,
-            grupo,
-            materiais_detectados,
-            contaminantes_detectados,
-            alerta_contaminacao,
-            tipo_contaminacao,
-            severidade_contaminacao,
-            cacamba_esperada,
-            material_esperado,
-            fill_percent,
-            contamination_percent,
-            image_received_at
-        )
-        VALUES (
-            CURDATE(),
-            CURTIME(),
-            %(status)s,
-            %(processing_status)s,
-            %(file_path)s,
-            %(s3_bucket)s,
-            %(s3_key_raw)s,
-            %(s3_key_debug)s,
-            %(grupo)s,
-            %(materiais_detectados)s,
-            %(contaminantes_detectados)s,
-            %(alerta_contaminacao)s,
-            %(tipo_contaminacao)s,
-            %(severidade_contaminacao)s,
-            %(cacamba_esperada)s,
-            %(material_esperado)s,
-            %(fill_percent)s,
-            %(contamination_percent)s,
-            NOW()
-        )
-    """
-
     metadata = payload.get("metadata", {})
+    materiais_detectados_value = (
+        payload.get("materiais_detectados_raw")
+        or payload.get("materiais_detectados")
+        or []
+    )
+    material_detectado_principal = None
+    if isinstance(materiais_detectados_value, list) and materiais_detectados_value:
+        material_detectado_principal = materiais_detectados_value[0]
 
     payload_db = {
         **payload,
         "processing_status": payload.get("processing_status", "processed"),
         "s3_bucket": payload.get("s3_bucket") or metadata.get("bucket"),
         "materiais_detectados": _to_db_text(
-            payload.get("materiais_detectados_raw")
-            or payload.get("materiais_detectados")
-            or ""
+            materiais_detectados_value or ""
         ),
         "contaminantes_detectados": _to_db_text(
             payload.get("contaminantes_detectados") or ""
@@ -117,11 +74,77 @@ def save_detection_event(payload: dict):
             "severidade_contaminacao",
             "baixa"
         ),
+        "material_detectado": material_detectado_principal,
     }
+
+    # Guarantee placeholders for optional DB columns that may exist in the
+    # schema even when the current processing path has no value for them.
+    for optional_field in (
+        "debug_path",
+        "s3_key_debug",
+        "tenant_id",
+        "camera_id",
+        "container_id",
+    ):
+        payload_db.setdefault(optional_field, None)
 
     payload_db.pop("metadata", None)
     payload_db.pop("materiais_detectados_raw", None)
 
     with get_connection() as conn:
         with conn.cursor() as cursor:
+            event_columns = _load_event_columns(cursor)
+
+            sql_fields = []
+            sql_values = []
+
+            fixed_fields = {
+                "data_ref": "CURDATE()",
+                "hora_ref": "CURTIME()",
+                "image_received_at": "NOW()",
+            }
+
+            optional_field_order = [
+                "status",
+                "processing_status",
+                "file_path",
+                "debug_path",
+                "s3_bucket",
+                "s3_key_raw",
+                "s3_key_debug",
+                "grupo",
+                "materiais_detectados",
+                "contaminantes_detectados",
+                "alerta_contaminacao",
+                "tipo_contaminacao",
+                "severidade_contaminacao",
+                "cacamba_esperada",
+                "material_esperado",
+                "material_detectado",
+                "fill_percent",
+                "contamination_percent",
+                "tenant_id",
+                "camera_id",
+                "container_id",
+            ]
+
+            for field, raw_sql in fixed_fields.items():
+                if field in event_columns:
+                    sql_fields.append(field)
+                    sql_values.append(raw_sql)
+
+            for field in optional_field_order:
+                if field in event_columns:
+                    sql_fields.append(field)
+                    sql_values.append(f"%({field})s")
+
+            sql = f"""
+                INSERT INTO events (
+                    {", ".join(sql_fields)}
+                )
+                VALUES (
+                    {", ".join(sql_values)}
+                )
+            """
+
             cursor.execute(sql, payload_db)

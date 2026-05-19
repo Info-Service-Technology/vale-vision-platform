@@ -43,13 +43,22 @@ def avaliar_contaminacao(grupo: str, materiais_detectados: list):
     regra = REGRAS.get(grupo)
 
     if not regra:
+        contaminantes = materiais_detectados[1:] if len(materiais_detectados) > 1 else []
+        alerta = 1 if contaminantes else 0
+        if alerta:
+            tipo_contaminacao = f"{'_'.join(contaminantes)}_em_{grupo or 'desconhecido'}"
+            severidade = "media" if len(contaminantes) == 1 else "alta"
+        else:
+            tipo_contaminacao = "grupo_desconhecido"
+            severidade = "baixa"
+
         return {
             "cacamba_esperada": grupo,
             "material_esperado": "",
-            "contaminantes_detectados": "",
-            "alerta_contaminacao": 0,
-            "tipo_contaminacao": "grupo_desconhecido",
-            "severidade_contaminacao": "baixa"
+            "contaminantes_detectados": ", ".join(contaminantes),
+            "alerta_contaminacao": alerta,
+            "tipo_contaminacao": tipo_contaminacao,
+            "severidade_contaminacao": severidade
         }
 
     materiais_aceitos = [

@@ -50,6 +50,7 @@ type AuthContextValue = {
   billingStatus: string;
   isBillingRestricted: boolean;
   canWriteTenantData: boolean;
+  allowManualResolution: boolean;
   login: (email: string, password: string, tenantSlug?: string) => Promise<void>;
   logout: () => void;
   refreshMe: () => Promise<void>;
@@ -64,6 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return raw ? (JSON.parse(raw) as AuthUser) : null;
   });
   const [tenant, setTenant] = useState<AuthTenant | null>(null);
+  const [allowManualResolution, setAllowManualResolution] = useState(true);
   const [loading, setLoading] = useState(true);
 
   async function refreshMe() {
@@ -71,6 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     setUser(data.user ?? null);
     setTenant(data.tenant ?? null);
+    setAllowManualResolution(data.capabilities?.allow_manual_resolution !== false);
 
     if (data.user) {
       localStorage.setItem("vale_user", JSON.stringify(data.user));
@@ -117,6 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setLoading(false);
           setUser(null);
           setTenant(null);
+          setAllowManualResolution(true);
         }
         return;
       }
@@ -153,12 +157,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         billingStatus,
         isBillingRestricted: !isSuperAdmin && isBillingRestrictedStatus(billingStatus),
         canWriteTenantData: isSuperAdmin || canTenantWrite(billingStatus),
+        allowManualResolution,
         login,
         logout,
         refreshMe,
       };
     },
-    [user, tenant, token, loading]
+    [user, tenant, token, loading, allowManualResolution]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

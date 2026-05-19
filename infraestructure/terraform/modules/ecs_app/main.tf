@@ -120,15 +120,17 @@ locals {
 
     environment = [
       { name = "AWS_REGION", value = var.region },
+      { name = "APP_TIMEZONE", value = "America/Sao_Paulo" },
       { name = "SQS_QUEUE_URL", value = var.sqs_queue_url },
       { name = "DB_HOST", value = coalesce(var.db_host, "") },
       { name = "DB_PORT", value = tostring(var.db_port) },
       { name = "DB_USER", value = var.db_username },
       { name = "DB_NAME", value = var.db_name },
-      { name = "S3_BUCKET", value = "vale-vision-artifacts-dev" },
+      { name = "S3_BUCKET", value = "sansx-vision-prd" },
       { name = "S3_PREFIX_RAW", value = "raw/" },
       { name = "S3_PREFIX_PROCESSED", value = "processed/" },
       { name = "S3_PREFIX_RESOLVED", value = "resolved/" },
+      { name = "S3_INCLUDE_TENANT_IN_KEY", value = "true" },
       { name = "TENANT", value = "vale" },
       { name = "CAMERA_NAME", value = "cam01" },
       { name = "CONFIDENCE_THRESHOLD", value = "0.4" },
@@ -292,7 +294,7 @@ resource "aws_ecs_service" "inference_gpu" {
   name            = "${var.name_prefix}-inference-gpu"
   cluster         = var.cluster_arn
   task_definition = aws_ecs_task_definition.inference_gpu.arn
-  desired_count = var.inference_gpu_desired_count
+  desired_count   = var.inference_gpu_desired_count
 
   capacity_provider_strategy {
     capacity_provider = var.inference_capacity_provider_name

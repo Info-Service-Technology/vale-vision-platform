@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import account, admin_audit, admin_tenants, admin_users, auth, billing, events, health, inference, tenants
+from app.api.routes import account, admin_audit, admin_tenants, admin_users, assets, auth, billing, events, health, inference, tenants
 
 app = FastAPI(title="Vale Vision API", version="0.1.0")
 
@@ -23,6 +23,7 @@ app.add_middleware(
 app.include_router(health.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")
 app.include_router(account.router, prefix="/api")
+app.include_router(assets.router, prefix="/api")
 app.include_router(admin_audit.router, prefix="/api")
 app.include_router(admin_tenants.router, prefix="/api")
 app.include_router(admin_users.router, prefix="/api")

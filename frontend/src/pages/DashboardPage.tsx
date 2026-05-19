@@ -11,7 +11,6 @@ import {
   TablePagination,
   TextField,
 } from "@mui/material";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Sidebar } from "../components/Sidebar";
@@ -35,6 +34,7 @@ import { VisionEvent } from "../types/events";
 
 const containers = [
   { key: "all", labelKey: "all", filter: undefined },
+  { key: "papelao", label: "Papelão", filter: "papelao" },
   { key: "plastico", labelKey: "plastic", filter: "plastico" },
   { key: "madeira", labelKey: "wood", filter: "madeira" },
   { key: "sucata", labelKey: "scrap", filter: "sucata" },
@@ -43,7 +43,7 @@ const containers = [
 export function DashboardPage() {
   const { t, lang, setLang } = useLocale();
   const queryClient = useQueryClient();
-  const { user, logout } = useAuth();
+  const { user, logout, allowManualResolution } = useAuth();
 
   const [tab, setTab] = useState("all");
   const [page, setPage] = useState(0);
@@ -91,6 +91,7 @@ export function DashboardPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["metrics"] });
+      queryClient.invalidateQueries({ queryKey: ["resolved-events"] });
     },
   });
 
@@ -168,7 +169,7 @@ export function DashboardPage() {
                 sx={{ mb: 2 }}
               >
                 {containers.map((c) => (
-                  <Tab key={c.key} value={c.key} label={t(c.labelKey)} />
+                  <Tab key={c.key} value={c.key} label={c.label ?? t(c.labelKey)} />
                 ))}
               </Tabs>
 
@@ -196,7 +197,7 @@ export function DashboardPage() {
               <EventsTable
                 rows={rows}
                 onOpenImage={openImage}
-                onResolve={(event: any) => setResolveDialog({ open: true, event })}
+                onResolve={allowManualResolution ? ((event: any) => setResolveDialog({ open: true, event })) : undefined}
                 t={t}
               />
 

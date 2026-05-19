@@ -38,7 +38,7 @@ export function EventsTable({ rows, onOpenImage, onResolve, t }: any) {
                 >
                   <RemoveRedEye fontSize="small" color="secondary" />
                 </Button>
-                {onResolve && (
+                {onResolve && Boolean(event.alerta_contaminacao) && (
                   <Button
                     size="small"
                     variant="contained"

@@ -9,6 +9,10 @@ from app.processor import process_image_from_s3
 class ProcessS3Request(BaseModel):
     bucket: str
     key: str
+    grupo: str | None = None
+    camera_name: str | None = None
+    fill_percent: float | None = None
+    metadata: dict | None = None
 
 
 app = FastAPI(title="Inference Service API")
@@ -38,7 +42,14 @@ def trigger_ftp_sync():
 @app.post("/process-s3")
 def process_s3_object(payload: ProcessS3Request):
     try:
-        result = process_image_from_s3(bucket=payload.bucket, key=payload.key)
+        result = process_image_from_s3(
+            bucket=payload.bucket,
+            key=payload.key,
+            grupo=payload.grupo,
+            camera_name=payload.camera_name,
+            fill_percent=payload.fill_percent,
+            metadata=payload.metadata,
+        )
         return {"status": "ok", "result": result}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))

@@ -1,111 +1,128 @@
-import json
+import os
 import re
 from pathlib import Path
 from typing import Any
 
 from app.db_client import save_detection_event
-from app.s3_client import download_s3_object
 from app.motor_contaminacao import avaliar_contaminacao
+from app.s3_client import download_s3_object
+from app.segmentador_borda_cacamba import SegmentadorBordaCacamba
+from app.segmentador_contaminantes import SegmentadorContaminantes
 
-IGNORED_OBJECTS = {
-    "human",
-    "humano",
-    "pessoa",
-    "pessoas",
-    "animal",
-    "animais",
-    "cao",
-    "cachorro",
-    "gato",
-    "car",
-    "carro",
-    "truck",
-    "vehicle",
-    "onibus",
-    "bus",
-}
+CAMERA_GROUP_MAP_RAW = os.environ.get(
+    "CAMERA_GROUP_MAP",
+    "cammadeira=madeira,campapelao=papelao,camplastico=plastico,camsucata=sucata",
+)
 
-MATERIAL_KEYWORDS = {
-    "madeira": ["madeira", "papelao", "papelão", "papel"],
-    "plastico": ["plastico", "plástico", "plastic"],
-    "sucata": ["sucata", "ferro", "scrap", "metal"],
-}
-
-OUTSIDE_BIN_TERMS = {
-    "outside",
-    "fora",
-    "exterior",
-    "street",
-    "road",
-    "pista",
-    "estrada",
-    "carro",
-    "car",
-    "truck",
-    "bus",
-    "onibus",
-}
-
-
-def _json_safe(value: Any) -> Any:
-    if isinstance(value, (dict, list, tuple)):
-        return json.dumps(value, ensure_ascii=False)
-    return value
-
-
-def _normalize_payload_for_db(payload: dict[str, Any]) -> dict[str, Any]:
-    return {key: _json_safe(value) for key, value in payload.items()}
+SEGMENTADOR_CONTAMINANTES = SegmentadorContaminantes()
+SEGMENTADOR_BORDA = SegmentadorBordaCacamba()
 
 
 def _normalize_material(material: str) -> str:
-    return material.strip().lower()
+    if not material:
+        return ""
+
+    return (
+        material.strip()
+        .lower()
+        .replace("ã", "a")
+        .replace("á", "a")
+        .replace("â", "a")
+        .replace("é", "e")
+        .replace("ê", "e")
+        .replace("í", "i")
+        .replace("ó", "o")
+        .replace("ô", "o")
+        .replace("õ", "o")
+        .replace("ú", "u")
+        .replace("ç", "c")
+    )
 
 
-def _is_inside_bin(filename: str) -> bool:
-    name = filename.lower()
-    return not any(term in name for term in OUTSIDE_BIN_TERMS)
+def _parse_camera_group_map() -> dict[str, str]:
+    mapping: dict[str, str] = {}
+
+    for item in CAMERA_GROUP_MAP_RAW.split(","):
+        if "=" not in item:
+            continue
+
+        camera_name, group = item.split("=", 1)
+        camera_name = camera_name.strip().lower()
+        group = _normalize_material(group)
+
+        if camera_name and group:
+            mapping[camera_name] = group
+
+    return mapping
 
 
-def _infer_fill_percent(filename: str) -> float:
-    name = filename.lower()
-    match = re.search(r"(\d{1,3})\s*%", name)
-    if not match:
-        match = re.search(r"(?:fill|ocupacao|lotacao|lotação)[_-]?(\d{1,3})", name)
-    if match:
-        value = int(match.group(1))
-        return float(max(0, min(100, value)))
-    return 0.0
+CAMERA_GROUP_MAP = _parse_camera_group_map()
+
+
+def _parse_float(value: Any) -> float | None:
+    if value is None or value == "":
+        return None
+
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        return None
+
+    return float(max(0.0, min(100.0, value)))
 
 
 def inferir_materiais(local_image_path: Path) -> list[str]:
-    """
-    TODO: substituir pelo modelo real.
-    """
-    filename = local_image_path.name.lower()
-    if any(term in filename for term in IGNORED_OBJECTS):
-        return []
+    if SEGMENTADOR_CONTAMINANTES.ativo:
+        resultado = SEGMENTADOR_CONTAMINANTES.inferir(local_image_path)
+        materiais = resultado.get("materiais_detectados", [])
+        if materiais:
+            return materiais
 
-    materiais = []
-    for material, terms in MATERIAL_KEYWORDS.items():
-        if any(term in filename for term in terms):
-            materiais.append(material)
-
-    return materiais
+    return []
 
 
-def inferir_grupo_por_nome_arquivo(filename: str) -> str:
-    nome = filename.lower()
+def inferir_grupo_por_materiais(materiais_detectados: list[str]) -> str:
+    if not materiais_detectados:
+        return "desconhecido"
+    return materiais_detectados[0]
 
-    if "papelao" in nome or "papelão" in nome:
-        return "papelao"
 
-    if "plastico" in nome or "plástico" in nome:
-        return "plastico"
-
-    if "sucata" in nome or "ferro" in nome:
-        return "sucata"
+def _extract_camera_name_from_key(key: str) -> str:
+    match = re.search(r"(?:^|/)camera=([^/]+)", key, flags=re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
 
     return "desconhecido"
+
+
+def inferir_grupo_por_camera(camera_name: str) -> str:
+    normalized_camera = camera_name.strip().lower()
+    if not normalized_camera:
+        return "desconhecido"
+
+    mapped = CAMERA_GROUP_MAP.get(normalized_camera)
+    if mapped:
+        return mapped
+
+    aliases = {
+        "madeira": ["madeira", "wood", "md"],
+        "papelao": ["papelao", "papelao", "papel", "cardboard"],
+        "plastico": ["plastico", "plastic"],
+        "sucata": ["sucata", "ferro", "metal", "scrap"],
+    }
+    for group, terms in aliases.items():
+        if any(term in normalized_camera for term in terms):
+            return group
+
+    return "desconhecido"
+
+
+def _infer_fill_percent(metadata: dict[str, Any]) -> float:
+    for key in ("fill_percent", "fillLevel", "ocupacao_percent", "occupancy_percent"):
+        parsed = _parse_float(metadata.get(key))
+        if parsed is not None:
+            return parsed
+    return 0.0
 
 
 def _calculate_contamination_percent(
@@ -118,45 +135,62 @@ def _calculate_contamination_percent(
     return round(percent, 1)
 
 
-def process_image_from_s3(bucket: str, key: str):
+def _resolve_expected_group(
+    key: str,
+    metadata: dict[str, Any],
+    explicit_group: str | None = None,
+    camera_name: str | None = None,
+) -> tuple[str, str]:
+    if explicit_group:
+        return _normalize_material(explicit_group), camera_name or _extract_camera_name_from_key(key)
+
+    for candidate_key in ("grupo", "expected_group", "cacamba_esperada", "material_esperado"):
+        candidate = metadata.get(candidate_key)
+        if candidate:
+            return _normalize_material(str(candidate)), camera_name or _extract_camera_name_from_key(key)
+
+    resolved_camera = camera_name or metadata.get("camera_name") or _extract_camera_name_from_key(key)
+    return inferir_grupo_por_camera(str(resolved_camera)), str(resolved_camera)
+
+
+def process_image_from_s3(
+    bucket: str,
+    key: str,
+    grupo: str | None = None,
+    camera_name: str | None = None,
+    fill_percent: float | None = None,
+    metadata: dict[str, Any] | None = None,
+):
+    metadata = metadata or {}
     local_path = download_s3_object(bucket=bucket, key=key)
     file_name = local_path.name
+    grupo, resolved_camera_name = _resolve_expected_group(
+        key=key,
+        metadata=metadata,
+        explicit_group=grupo,
+        camera_name=camera_name,
+    )
 
-    if not _is_inside_bin(file_name):
-        result = {
-            "status": "ignored_outside_bin",
-            "file_path": file_name,
-            "s3_key_raw": key,
-            "s3_key_debug": None,
-            "grupo": inferir_grupo_por_nome_arquivo(file_name),
-            "materiais_detectados_raw": [],
-            "materiais_detectados": [],
-            "contaminantes_detectados": "",
-            "alerta_contaminacao": 0,
-            "tipo_contaminacao": "fora_da_cacamba",
-            "severidade_contaminacao": "baixa",
-            "cacamba_esperada": "",
-            "material_esperado": "",
-            "fill_percent": _infer_fill_percent(file_name),
-            "contamination_percent": 0.0,
-            "metadata": {
-                "bucket": bucket,
-                "key": key,
-                "worker_version": "v1",
-            },
-        }
-        print("[processor] Imagem fora da caçamba. Ignorada.", flush=True)
-        return result
+    border_result = SEGMENTADOR_BORDA.detectar(local_path)
+    analysis_mask = border_result.get("mask") if border_result.get("ok") else None
+    resultado_contaminantes = SEGMENTADOR_CONTAMINANTES.inferir(
+        local_path,
+        analysis_mask=analysis_mask,
+    )
+    materiais_detectados = resultado_contaminantes.get("materiais_detectados", [])
 
-    grupo = inferir_grupo_por_nome_arquivo(file_name)
-    materiais_detectados = inferir_materiais(local_path)
+    if grupo == "desconhecido" and materiais_detectados:
+        grupo = inferir_grupo_por_materiais(materiais_detectados)
 
     decisao = avaliar_contaminacao(
         grupo=grupo,
         materiais_detectados=materiais_detectados,
     )
 
-    fill_percent = _infer_fill_percent(file_name)
+    fill_percent_resolved = _parse_float(fill_percent)
+    if fill_percent_resolved is None:
+        fill_percent_resolved = _infer_fill_percent(metadata)
+
     contaminantes_text = decisao.get("contaminantes_detectados", "")
     contamination_percent = _calculate_contamination_percent(
         materiais_detectados,
@@ -171,13 +205,21 @@ def process_image_from_s3(bucket: str, key: str):
         "grupo": grupo,
         "materiais_detectados_raw": materiais_detectados,
         "materiais_detectados": materiais_detectados,
-        "fill_percent": fill_percent,
+        "fill_percent": fill_percent_resolved,
         "contamination_percent": contamination_percent,
         **decisao,
         "metadata": {
+            **metadata,
             "bucket": bucket,
             "key": key,
             "worker_version": "v1",
+            "camera_name": resolved_camera_name,
+            "bin_roi_detected": bool(border_result.get("ok")),
+            "bin_roi_reason": border_result.get("motivo"),
+            "bin_roi_polygon": border_result.get("polygon", []),
+            "analysis_mask_applied": bool(resultado_contaminantes.get("analysis_mask_applied", False)),
+            "deteccoes": resultado_contaminantes.get("deteccoes", []),
+            "areas_ratio": resultado_contaminantes.get("areas_ratio", {}),
         },
     }
 

@@ -18,6 +18,7 @@ import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import HistoryIcon from "@mui/icons-material/History";
 import ApartmentIcon from "@mui/icons-material/Apartment";
+import TaskAltIcon from "@mui/icons-material/TaskAlt";
 
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -59,6 +60,7 @@ export function Sidebar({ role, onLogout }: Props) {
   const tenantMenu = [
     { label: t("dashboard"), icon: <DashboardIcon />, path: "/dashboard" },
     { label: t("bins"), icon: <DeleteIcon />, path: "/cacambas" },
+    { label: "Itens resolvidos", icon: <TaskAltIcon />, path: "/itens-resolvidos" },
     { label: t("billing"), icon: <ReceiptIcon />, path: "/billing" },
     { label: t("profile"), icon: <PersonIcon />, path: "/perfil" },
     { label: t("system"), icon: <SettingsIcon />, path: "/sistema" },
