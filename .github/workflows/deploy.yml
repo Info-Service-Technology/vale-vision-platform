@@ -8,6 +8,9 @@ on:
       - "backend/**"
       - "frontend/**"
       - "inference/**"
+      - "infraestructure/terraform/**"
+      - ".github/workflows/terraform.yml"
+      - ".github/workflows/ci.yml"
       - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
