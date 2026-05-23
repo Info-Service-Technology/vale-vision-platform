@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     smtp_use_starttls: bool = True
     smtp_use_ssl: bool = False
     smtp_timeout_seconds: int = 30
+    docs_enabled: bool = True
+    docs_user: str | None = None
+    docs_password: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
