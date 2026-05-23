@@ -143,7 +143,8 @@ module "ecs_gpu_capacity" {
   instance_type    = "g4dn.xlarge"
   min_size         = 0
   max_size         = 1
-  desired_capacity = 1
+  # Keep the EC2 GPU capacity off when the GPU-backed inference service is off.
+  desired_capacity = var.inference_gpu_desired_count > 0 ? 1 : 0
 }
 
 module "vpc_endpoints" {
