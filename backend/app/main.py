@@ -1,13 +1,24 @@
 from pathlib import Path
+import secrets
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import account, admin_audit, admin_tenants, admin_users, assets, auth, billing, events, health, inference, tenants
+from app.core.config import settings
 
-app = FastAPI(title="Vale Vision API", version="0.1.0")
+app = FastAPI(
+    title="Vale Vision API",
+    version="0.1.0",
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
+)
+docs_security = HTTPBasic()
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,6 +48,34 @@ static_dir = base_dir / "static"
 frontend_dir = base_dir / "web"
 static_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+
+def authenticate_docs(credentials: HTTPBasicCredentials = Depends(docs_security)) -> None:
+    if not settings.docs_enabled:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    if not settings.docs_user or not settings.docs_password:
+        raise HTTPException(status_code=503, detail="Docs credentials not configured")
+
+    correct_username = secrets.compare_digest(credentials.username, settings.docs_user)
+    correct_password = secrets.compare_digest(credentials.password, settings.docs_password)
+
+    if not (correct_username and correct_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorized",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+
+
+@app.get("/openapi.json", include_in_schema=False)
+def openapi_endpoint(_: None = Depends(authenticate_docs)):
+    return JSONResponse(app.openapi())
+
+
+@app.get("/docs", include_in_schema=False)
+def docs_endpoint(_: None = Depends(authenticate_docs)):
+    return get_swagger_ui_html(openapi_url="/openapi.json", title="Vale Vision API Docs")
 
 
 @app.get("/", include_in_schema=False)

@@ -50,7 +50,7 @@ sqs_queue_url         = "https://sqs.sa-east-1.amazonaws.com/913524918638/sansx-
 # TF_VAR_inference_image_tag. Keeping fixed values here overrides the
 # workflow-provided commit SHA and prevents ECS from rolling to new images.
 inference_desired_count     = 0
-inference_gpu_desired_count = 1
+inference_gpu_desired_count = 0
 
 # GitHub OIDC
 enable_github_oidc = true

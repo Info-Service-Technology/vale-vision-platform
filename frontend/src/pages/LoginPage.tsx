@@ -42,8 +42,8 @@ export function LoginPage() {
     () => localStorage.getItem("vale_tenant_slug") || ""
   );
   const [loginProfile, setLoginProfile] = useState<LoginProfile>("mineradora");
-  const [email, setEmail] = useState("admin@valevision.com");
-  const [password, setPassword] = useState("123456");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -90,14 +90,7 @@ export function LoginPage() {
 
     setLoginProfile(value);
     setError("");
-
-    if (value === "mineradora") {
-      setEmail("admin@valevision.com");
-      return;
-    }
-
     setTenant(null);
-    setEmail("admin@sensx.com");
   }
 
   async function handleSubmit(event: React.FormEvent) {
