@@ -5,6 +5,7 @@ Serviço responsável pelo pipeline de visão computacional e regras de contamin
 ## FTP watcher
 
 O watcher FTP detecta imagens novas enviadas pelas câmeras via FTP e faz upload para o S3 em `raw/`.
+Ele mantém um arquivo de estado local para não reenviar imagens que já entraram no contexto do processamento.
 
 ### Como usar
 
@@ -17,7 +18,24 @@ O watcher FTP detecta imagens novas enviadas pelas câmeras via FTP e faz upload
 - `GET /health` — health check do serviço de inferência.
 - `POST /process-s3` — processa manualmente uma imagem existente no S3, recebendo `bucket` e `key` no corpo JSON.
 
+O endpoint `POST /process-s3` também aceita, quando necessário:
+
+- `grupo`
+- `camera_name`
+- `fill_percent`
+- `metadata`
+
+Isso permite inferência manual via proxy sem depender do nome do arquivo.
+
 Quando o container roda com `run_service.py`, o worker SQS é iniciado em background e a API fica disponível para trigger manual.
+
+## Área válida de análise
+
+O pipeline de contaminantes deve priorizar a área interna da borda da caçamba.
+
+- quando houver detector de borda/boca configurado, as máscaras de contaminantes são recortadas para a ROI interna da caçamba;
+- objetos em frente à caçamba, como pessoa com EPI ou veículo, não devem contaminar o resultado se estiverem fora dessa ROI;
+- se a ROI não estiver disponível, o serviço segue em modo de fallback e registra essa condição nos metadados técnicos do processamento.
 
 ### Teste local recomendado
 
@@ -39,6 +57,21 @@ Quando o container roda com `run_service.py`, o worker SQS é iniciado em backgr
    - `curl -X POST http://localhost:8000/api/inference/ftp/sync`
    - `curl http://localhost:8000/api/inference/ftp/health`
 
+### Modelos locais no Docker
+
+No ambiente local, o container de inferência precisa enxergar os pesos `.pt` dentro de `/app/model`.
+
+Exemplo de montagem no `docker-compose`:
+
+- `../vale_sa/PACOTE_PILOTO_VM/PRODUTO_VOLUMETRIA_RELEASE_V8/models:/app/model:ro`
+
+Exemplo de variáveis:
+
+- `CONTAMINANTES_MODEL_PATH=/app/model/contaminantes_rf_v1.pt`
+- `BORDA_CACAMBA_MODEL_PATH=/app/model/borda_cacamba.pt`
+
+Se o peso de borda ainda não existir, a inferência de materiais pode funcionar sem ROI, mas a filtragem pela boca da caçamba continuará em fallback.
+
 ### Teste com docker-compose
 
 Se estiver usando `docker-compose`, a configuração atual expõe o serviço de inferência em `localhost:8001`.
@@ -56,6 +89,7 @@ Se estiver usando `docker-compose`, a configuração atual expõe o serviço de 
 - `FTP_PASSWORD` — senha FTP.
 - `FTP_BASE_DIR` — diretório base no FTP (padrão `/upload`).
 - `FTP_CAMERA_DIRS` — lista de pastas de câmeras, separada por vírgula.
+- `CAMERA_GROUP_MAP` — mapeamento `camera=grupo` para definir o grupo esperado sem usar o nome do arquivo.
 - `FTP_POLL_INTERVAL_SECONDS` — intervalo de varredura em segundos (padrão `60`).
 - `FTP_DOWNLOAD_DIR` — diretório local temporário para downloads (padrão `/tmp/ftp_download`).
 - `FTP_STATE_FILE` — arquivo local de estado para evitar reprocessamento.
@@ -64,4 +98,7 @@ Se estiver usando `docker-compose`, a configuração atual expõe o serviço de 
 - `S3_BUCKET` — bucket S3 de destino.
 - `S3_PREFIX_RAW` — prefixo S3 raw (padrão `raw/`).
 - `TENANT` — tenant atual, usado para separar clientes como `tenant=vale`.
+- `S3_INCLUDE_TENANT_IN_KEY` — se `true`, inclui `/tenant=<TENANT>` na key; o padrão recomendado é `true` para o layout multi-tenant canônico do bucket `sansx-vision-prd-artifacts`.
+- `APP_TIMEZONE` — timezone usado para calcular `year/month/day` na key do S3; padrão recomendado `America/Sao_Paulo`.
 - `AWS_REGION` — região AWS.
+- `BORDA_CACAMBA_MODEL_PATH` — modelo opcional para detectar a borda/boca da caçamba.

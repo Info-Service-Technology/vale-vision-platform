@@ -23,7 +23,7 @@ FTP_STATE_FILE = Path(os.getenv("FTP_STATE_FILE", "/tmp/ftp_processed.json"))
 FTP_MOVE_PROCESSED = os.getenv("FTP_MOVE_PROCESSED", "false").strip().lower() in {"1", "true", "yes"}
 FTP_PROCESSED_SUBDIR = os.getenv("FTP_PROCESSED_SUBDIR", "processed")
 
-S3_BUCKET = os.getenv("S3_BUCKET")
+S3_BUCKET = os.getenv("S3_BUCKET") or os.getenv("ARTIFACTS_BUCKET")
 S3_PREFIX_RAW = os.getenv("S3_PREFIX_RAW", "raw/")
 TENANT = os.getenv("TENANT")
 S3_INCLUDE_TENANT_IN_KEY = os.getenv("S3_INCLUDE_TENANT_IN_KEY", "true").strip().lower() in {

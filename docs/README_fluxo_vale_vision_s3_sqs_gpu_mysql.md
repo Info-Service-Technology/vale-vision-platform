@@ -6,6 +6,8 @@ Consolidar o fluxo operacional do Vale Vision para detecção de contaminantes e
 
 O fluxo principal não deve depender de upload manual pelo dashboard. As câmeras detectam movimento, capturam imagens e um módulo de captura envia essas imagens para o S3 em `raw/`. A partir daí, o pipeline deve ser automático: S3 notifica SQS, o worker GPU processa a imagem, grava o resultado no MySQL e o dashboard exibe apenas os eventos que precisam de ação operacional.
 
+O watcher de captura deve operar de forma incremental, sem reenviar imagens já processadas anteriormente.
+
 ---
 
 ## 2. Fluxo principal
@@ -37,6 +39,7 @@ Câmera detecta movimento
 | Mensageria | Amazon SQS | Desacoplar upload e processamento |
 | Processamento | ECS GPU Worker | Rodar inferência da IA |
 | IA | YOLO / segmentador | Detectar materiais visíveis |
+| ROI da caçamba | detector de borda/boca | Restringir análise ao interior da caçamba |
 | Regras | Motor de contaminação | Comparar material detectado com grupo esperado |
 | Persistência | MySQL / RDS | Gravar eventos e status |
 | API | Backend Flask | Servir eventos, resolver ocorrências e gerar URLs de imagem |
@@ -73,7 +76,7 @@ O worker aceita o formato simples:
 
 ```json
 {
-  "bucket": "vale-vision-artifacts-dev",
+  "bucket": "sansx-vision-prd-artifacts",
   "key": "raw/tenant=vale/camera=cam01/year=2026/month=04/day=25/imagem.jpg"
 }
 ```
@@ -143,6 +146,12 @@ Deve aparecer em **Itens Resolvidos**.
 ---
 
 ## 8. Regras de contaminação
+
+Antes de aplicar a regra de material, o pipeline deve definir a ROI válida da caçamba:
+
+- detectar a borda ou boca da caçamba;
+- considerar apenas objetos e máscaras dentro dessa ROI;
+- ignorar interferências em primeiro plano fora da caçamba, como pessoas com EPI, veículos e objetos externos.
 
 | Grupo esperado | Aceita | Contaminante se detectar |
 |---|---|---|
