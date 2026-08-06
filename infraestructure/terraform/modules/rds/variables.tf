@@ -38,3 +38,8 @@ variable "allocated_storage" {
 variable "engine_version" {
   type = string
 }
+
+variable "create_rds" {
+  type    = bool
+  default = true
+}

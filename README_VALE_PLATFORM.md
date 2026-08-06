@@ -25,6 +25,12 @@ Quando o pipeline detecta material divergente, o evento deve ser registrado com:
 - severidade;
 - imagem e evidências de debug.
 
+Regra espacial obrigatória:
+
+- a borda ou boca da caçamba deve ser detectada para definir a área válida de análise;
+- a decisão de contaminação deve considerar apenas o que estiver dentro dessa área;
+- pessoas, EPIs, veículos e outros objetos em primeiro plano fora da caçamba não devem gerar contaminação apenas por sobreposição visual na imagem.
+
 No pipeline legado, essa regra já existe na camada de decisão de contaminação e produz campos como `contaminantes_detectados`, `alerta_contaminacao`, `tipo_contaminacao`, `cacamba_esperada` e `material_esperado`.
 
 ## Visão geral da arquitetura alvo
@@ -71,6 +77,15 @@ API / banco MySQL
 Frontend React/MUI
 ```
 
+Padrão canônico de artefatos S3:
+
+- bucket compartilhado da plataforma: `s3://sansx-vision-prd-artifacts`
+- segregação lógica por tenant e câmera:
+  `raw/tenant=<tenant>/camera=<camera>/year=<YYYY>/month=<MM>/day=<DD>/<arquivo>`
+
+Observação:
+- no Amazon S3 essas "pastas" são prefixos lógicos; os prefixos `campapelao`, `camplastico` e `camsucata` passam a existir automaticamente no primeiro upload para cada caminho.
+
 ## Estrutura sugerida do repositório
 
 ```text
@@ -116,6 +131,13 @@ vale-vision-platform/
 - ALB compartilhado com isolamento lógico
 - Terraform
 - CI/CD
+
+## Regras adicionais já assumidas no pipeline
+
+- o watcher FTP deve operar de forma incremental, escutando imagens novas sem reprocessar arquivos já vistos;
+- a inferência manual continua disponível por proxy HTTP para suporte operacional e teste;
+- o grupo esperado da caçamba não deve ser inferido pelo nome do arquivo da imagem;
+- o grupo esperado deve vir do contexto operacional da câmera, metadados ou mapeamento da própria caçamba.
 
 ## Decisão de reuso da infra do HDI
 

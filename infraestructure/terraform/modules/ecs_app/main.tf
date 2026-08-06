@@ -126,7 +126,7 @@ locals {
       { name = "DB_PORT", value = tostring(var.db_port) },
       { name = "DB_USER", value = var.db_username },
       { name = "DB_NAME", value = var.db_name },
-      { name = "S3_BUCKET", value = "sansx-vision-prd" },
+      { name = "S3_BUCKET", value = var.artifacts_bucket_name },
       { name = "S3_PREFIX_RAW", value = "raw/" },
       { name = "S3_PREFIX_PROCESSED", value = "processed/" },
       { name = "S3_PREFIX_RESOLVED", value = "resolved/" },
@@ -251,7 +251,7 @@ resource "aws_ecs_service" "backend" {
   name            = "${var.name_prefix}-backend"
   cluster         = var.cluster_arn
   task_definition = aws_ecs_task_definition.backend.arn
-  desired_count   = var.backend_desired_count
+  desired_count = var.standby_mode ? 0 : var.backend_desired_count
   launch_type     = "FARGATE"
 
   network_configuration {
@@ -270,13 +270,14 @@ resource "aws_ecs_service" "backend" {
   deployment_maximum_percent         = 200
   health_check_grace_period_seconds  = 60
   enable_execute_command             = true
+
 }
 
 resource "aws_ecs_service" "inference" {
   name            = "${var.name_prefix}-inference"
   cluster         = var.cluster_arn
   task_definition = aws_ecs_task_definition.inference.arn
-  desired_count   = var.inference_desired_count
+  desired_count   = var.standby_mode ? 0 : var.inference_desired_count
   launch_type     = "FARGATE"
 
   network_configuration {
@@ -294,7 +295,7 @@ resource "aws_ecs_service" "inference_gpu" {
   name            = "${var.name_prefix}-inference-gpu"
   cluster         = var.cluster_arn
   task_definition = aws_ecs_task_definition.inference_gpu.arn
-  desired_count   = var.inference_gpu_desired_count
+  desired_count   = var.standby_mode ? 0 : var.inference_gpu_desired_count
 
   capacity_provider_strategy {
     capacity_provider = var.inference_capacity_provider_name

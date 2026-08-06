@@ -98,12 +98,13 @@ module "ecs_app" {
   inference_memory                 = var.inference_memory
   backend_desired_count            = var.backend_desired_count
   inference_desired_count          = var.inference_desired_count
+  standby_mode                     = var.standby_mode
   backend_container_port           = local.backend_container_port
   inference_container_port         = local.inference_container_port
   log_group_backend_name           = module.logs.backend_log_group_name
   log_group_inference_name         = module.logs.inference_log_group_name
   artifacts_bucket_name            = module.artifacts.bucket_name
-  sqs_queue_url                    = var.sqs_queue_url
+  sqs_queue_url                    = aws_sqs_queue.inference.url
   image_source_buckets             = var.image_source_buckets
   db_host                          = local.db_endpoint
   db_port                          = local.db_port
@@ -137,7 +138,7 @@ module "ecs_gpu_capacity" {
   cluster_name       = "sansx-vision-prd-cluster"
   vpc_id             = "vpc-0822f063050b009b0"
   subnet_ids         = ["subnet-0d906b6d7d3a10755", "subnet-07bbbcfff0a872b63"]
-  security_group_ids = ["sg-0d1905698252599e1"]
+  security_group_ids = [module.security.ecs_sg_id]
 
   ami_id        = "ami-01623464a038bd55e"
   instance_type = "g4dn.xlarge"
@@ -159,8 +160,7 @@ module "vpc_endpoints" {
   ]
 
   ecs_security_group_ids = [
-    "sg-0d1905698252599e1", # Vale Vision
-    "sg-0ecc97b7f177252b5"  # HDI
+    module.security.ecs_sg_id
   ]
 }
 
@@ -224,7 +224,7 @@ resource "aws_security_group_rule" "rds_from_bastion" {
   from_port                = 3306
   to_port                  = 3306
   protocol                 = "tcp"
-  security_group_id        = "sg-0aeb8a9b25bdfb47e"
+  security_group_id        = module.security.rds_sg_id
   source_security_group_id = "sg-0ce1dae21d02face1"
   description              = "Allow MySQL from bastion host"
 }
@@ -256,6 +256,7 @@ resource "aws_sqs_queue_policy" "inference_from_s3" {
 
   policy = jsonencode({
     Version = "2012-10-17"
+
     Statement = [
       {
         Sid    = "AllowS3SendMessage"
@@ -270,7 +271,7 @@ resource "aws_sqs_queue_policy" "inference_from_s3" {
 
         Condition = {
           ArnEquals = {
-            "aws:SourceArn" = "arn:aws:s3:::sansx-vision-prd"
+            "aws:SourceArn" = "arn:aws:s3:::${module.artifacts.bucket_name}"
           }
         }
       }
@@ -279,7 +280,7 @@ resource "aws_sqs_queue_policy" "inference_from_s3" {
 }
 
 resource "aws_s3_bucket_notification" "raw_to_inference_sqs" {
-  bucket = "sansx-vision-prd"
+  bucket = module.artifacts.bucket_name
 
   queue {
     queue_arn     = aws_sqs_queue.inference.arn
@@ -290,4 +291,59 @@ resource "aws_s3_bucket_notification" "raw_to_inference_sqs" {
   depends_on = [
     aws_sqs_queue_policy.inference_from_s3
   ]
+}
+
+
+resource "aws_acm_certificate" "sensx_platform" {
+  domain_name = var.frontend_host
+
+  subject_alternative_names = [
+    "*.${var.frontend_host}"
+  ]
+
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_route53_record" "sensx_platform_certificate_validation" {
+  allow_overwrite = true
+  zone_id         = var.primary_hosted_zone_id
+
+  name = one([
+    for option in aws_acm_certificate.sensx_platform.domain_validation_options :
+    option.resource_record_name
+    if option.domain_name == var.frontend_host
+  ])
+
+  type = one([
+    for option in aws_acm_certificate.sensx_platform.domain_validation_options :
+    option.resource_record_type
+    if option.domain_name == var.frontend_host
+  ])
+
+  records = [
+    one([
+      for option in aws_acm_certificate.sensx_platform.domain_validation_options :
+      option.resource_record_value
+      if option.domain_name == var.frontend_host
+    ])
+  ]
+
+  ttl = 60
+}
+
+resource "aws_acm_certificate_validation" "sensx_platform" {
+  certificate_arn = aws_acm_certificate.sensx_platform.arn
+
+  validation_record_fqdns = [
+    aws_route53_record.sensx_platform_certificate_validation.fqdn
+  ]
+}
+
+resource "aws_lb_listener_certificate" "sensx_platform" {
+  listener_arn    = var.alb_https_listener_arn
+  certificate_arn = aws_acm_certificate_validation.sensx_platform.certificate_arn
 }

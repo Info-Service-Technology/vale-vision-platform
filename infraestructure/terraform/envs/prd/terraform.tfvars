@@ -42,7 +42,7 @@ email_reply_to        = "mauroslucios@gmail.com"
 email_support_address = "mauroslucios@gmail.com"
 frontend_public_url   = "https://sensxvisionplatform.com"
 api_public_url        = "https://api.sensxvisionplatform.com"
-image_source_buckets  = ["sansx-vision-prd"]
+image_source_buckets  = ["sansx-vision-prd-artifacts"]
 sqs_queue_url         = "https://sqs.sa-east-1.amazonaws.com/913524918638/sansx-vision-prd-inference-queue"
 
 # ECS image tags

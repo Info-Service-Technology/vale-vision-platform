@@ -192,3 +192,9 @@ variable "inference_gpu_desired_count" {
   type    = number
   default = 1
 }
+
+variable "standby_mode" {
+  description = "Coloca o ambiente SansX/Vale Vision em modo stand-by para reduzir custos"
+  type        = bool
+  default     = false
+}
