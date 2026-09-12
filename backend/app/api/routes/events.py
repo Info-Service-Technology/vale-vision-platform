@@ -1,6 +1,7 @@
 from math import ceil
 from datetime import datetime, timezone
 import boto3
+from botocore.exceptions import ClientError
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import func, or_, text
@@ -257,6 +258,17 @@ def get_event_image_url(
         )
 
     s3 = boto3.client("s3", region_name=settings.aws_region)
+
+    try:
+        s3.head_object(Bucket=event.s3_bucket, Key=event.s3_key_raw)
+    except ClientError as exc:
+        error_code = exc.response.get("Error", {}).get("Code", "")
+        if error_code in {"403", "404", "AccessDenied", "NoSuchKey", "NoSuchBucket"}:
+            raise HTTPException(
+                status_code=404,
+                detail="Imagem não disponível para este evento",
+            ) from exc
+        raise
 
     url = s3.generate_presigned_url(
         "get_object",

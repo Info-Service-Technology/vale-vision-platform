@@ -19,7 +19,12 @@ def ensure_upload_dir(folder: str) -> Path:
 
 
 def get_uploads_bucket() -> str:
-    return settings.s3_bucket_uploads or settings.s3_bucket_raw or settings.s3_bucket_debug
+    return (
+        settings.s3_bucket_uploads
+        or settings.s3_bucket_raw
+        or settings.s3_bucket_debug
+        or settings.artifacts_bucket
+    )
 
 
 def build_asset_api_path(key: str) -> str:
@@ -71,6 +76,11 @@ def create_asset_presigned_url(key: str) -> str:
         region_name=settings.aws_region,
         config=Config(signature_version="s3v4"),
     )
+    try:
+        s3_client.head_object(Bucket=uploads_bucket, Key=key)
+    except Exception as exc:
+        raise HTTPException(status_code=404, detail="Asset não encontrado") from exc
+
     return s3_client.generate_presigned_url(
         "get_object",
         Params={"Bucket": uploads_bucket, "Key": key},

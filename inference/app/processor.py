@@ -8,6 +8,7 @@ from app.motor_contaminacao import avaliar_contaminacao
 from app.s3_client import download_s3_object
 from app.segmentador_borda_cacamba import SegmentadorBordaCacamba
 from app.segmentador_contaminantes import SegmentadorContaminantes
+from app.motor_volumetria import calcular_fill_percent, decidir_alerta_lotacao
 
 CAMERA_GROUP_MAP_RAW = os.environ.get(
     "CAMERA_GROUP_MAP",
@@ -117,12 +118,12 @@ def inferir_grupo_por_camera(camera_name: str) -> str:
     return "desconhecido"
 
 
-def _infer_fill_percent(metadata: dict[str, Any]) -> float:
+def _infer_fill_percent(metadata: dict[str, Any]) -> float | None:
     for key in ("fill_percent", "fillLevel", "ocupacao_percent", "occupancy_percent"):
         parsed = _parse_float(metadata.get(key))
         if parsed is not None:
             return parsed
-    return 0.0
+    return None
 
 
 def _calculate_contamination_percent(
@@ -187,9 +188,14 @@ def process_image_from_s3(
         materiais_detectados=materiais_detectados,
     )
 
+    # Volumetria: prioridade = parâmetro → metadata → cálculo pela imagem
     fill_percent_resolved = _parse_float(fill_percent)
     if fill_percent_resolved is None:
         fill_percent_resolved = _infer_fill_percent(metadata)
+    if fill_percent_resolved is None or fill_percent_resolved == 0.0:
+        fill_percent_resolved = calcular_fill_percent(resultado_contaminantes, analysis_mask)
+
+    alerta_lotacao = decidir_alerta_lotacao(fill_percent_resolved or 0.0)
 
     contaminantes_text = decisao.get("contaminantes_detectados", "")
     contamination_percent = _calculate_contamination_percent(
@@ -197,16 +203,25 @@ def process_image_from_s3(
         contaminantes_text,
     )
 
+    # Status: contaminação tem prioridade; senão, lotação alta
+    status = "contamination" if int(decisao.get("alerta_contaminacao", 0)) == 1 else "ok"
+    if status == "ok" and int(alerta_lotacao.get("alerta_lotacao", 0)) == 1:
+        status = "lotacao_alta"
+
     payload = {
-        "status": "contamination" if int(decisao.get("alerta_contaminacao", 0)) == 1 else "ok",
+        "status": status,
         "file_path": file_name,
+        "s3_bucket": bucket,
         "s3_key_raw": key,
         "s3_key_debug": None,
+        "processing_status": "processed",
         "grupo": grupo,
         "materiais_detectados_raw": materiais_detectados,
         "materiais_detectados": materiais_detectados,
         "fill_percent": fill_percent_resolved,
         "contamination_percent": contamination_percent,
+        "alerta_lotacao": alerta_lotacao["alerta_lotacao"],
+        "estado_lotacao": alerta_lotacao["estado_lotacao"],
         **decisao,
         "metadata": {
             **metadata,
@@ -223,12 +238,8 @@ def process_image_from_s3(
         },
     }
 
-    if int(decisao.get("alerta_contaminacao", 0)) != 1:
-        print("[processor] Sem contaminação detectada. Não grava no MySQL.", flush=True)
-        return payload
-
+    # Todo frame processado deve ser persistido.
+    # O dashboard precisa enxergar tanto eventos OK quanto contaminados.
     save_detection_event(payload)
-
     print(f"[processor] Resultado salvo: {payload}", flush=True)
-
     return payload

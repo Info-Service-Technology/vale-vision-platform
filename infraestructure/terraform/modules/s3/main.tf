@@ -1,5 +1,12 @@
 resource "aws_s3_bucket" "artifacts" {
   bucket = "${var.name_prefix}-artifacts"
+
+  # The event table keeps immutable references to these objects.  Losing this
+  # bucket makes historic dashboard images irrecoverable, even if MySQL keeps
+  # the corresponding events.
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_s3_bucket_versioning" "artifacts" {
