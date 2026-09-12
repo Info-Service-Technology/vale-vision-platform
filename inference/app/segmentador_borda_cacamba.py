@@ -132,3 +132,18 @@ class SegmentadorBordaCacamba:
             "mask_area_ratio": round(mask_ratio, 4),
             "confianca": round(float(confs[best_index]), 4),
         }
+
+def carregar_roi_fallback(camera_name: str):
+    """Retorna máscara de ROI a partir do config quando o modelo de borda não existe."""
+    import json
+    import numpy as np
+    import cv2
+    cfg = Path(__file__).resolve().parent.parent / "config" / "roi_cacambas.json"
+    if not cfg.exists():
+        return None
+    with open(cfg, encoding="utf-8") as f:
+        data = json.load(f)
+    entry = data.get(camera_name)
+    if not entry or not entry.get("polygon"):
+        return None
+    return np.array(entry["polygon"], dtype=np.int32)

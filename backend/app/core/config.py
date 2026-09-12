@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     s3_bucket_raw: str = ""
     s3_bucket_debug: str = ""
     s3_bucket_uploads: str = ""
+    artifacts_bucket: str = ""
     inference_service_scheme: str = "http"
     inference_service_host: str = "localhost"
     inference_service_port: int = 8001

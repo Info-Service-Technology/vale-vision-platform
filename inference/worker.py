@@ -16,6 +16,10 @@ VISIBILITY_TIMEOUT = int(os.getenv("VISIBILITY_TIMEOUT", "300"))
 sqs = boto3.client("sqs", region_name=AWS_REGION)
 
 
+class IgnoreMessage(Exception):
+    """Message is valid but should not be processed further."""
+
+
 def extract_s3_records(message_body: str):
     body = json.loads(message_body)
 
@@ -35,9 +39,15 @@ def extract_s3_records(message_body: str):
     if "Records" in body:
         return body["Records"]
 
+    # Evento de teste automático do S3 quando a notificação é criada/alterada.
+    if body.get("Service") == "Amazon S3" and body.get("Event") == "s3:TestEvent":
+        raise IgnoreMessage("Evento de teste do S3 ignorado")
+
     # Caso venha encapsulado por SNS
     if "Message" in body:
         message = json.loads(body["Message"])
+        if message.get("Service") == "Amazon S3" and message.get("Event") == "s3:TestEvent":
+            raise IgnoreMessage("Evento de teste do S3 ignorado")
         return message.get("Records", [])
 
     return []
@@ -45,7 +55,16 @@ def extract_s3_records(message_body: str):
 
 def handle_message(message):
     receipt_handle = message["ReceiptHandle"]
-    records = extract_s3_records(message["Body"])
+
+    try:
+        records = extract_s3_records(message["Body"])
+    except IgnoreMessage as exc:
+        print(f"[worker] {exc}. Removendo mensagem da fila.")
+        sqs.delete_message(
+            QueueUrl=SQS_QUEUE_URL,
+            ReceiptHandle=receipt_handle,
+        )
+        return
 
     if not records:
         raise ValueError(f"Mensagem SQS sem Records S3 reconhecíveis: {message['Body']}")
