@@ -238,8 +238,14 @@ def process_image_from_s3(
         },
     }
 
-    # Todo frame processado deve ser persistido.
-    # O dashboard precisa enxergar tanto eventos OK quanto contaminados.
+    # Somente eventos com contaminação são persistidos no MySQL.
+    if int(decisao.get("alerta_contaminacao", 0)) != 1:
+        print(
+            "[processor] Sem contaminação detectada. Não grava no MySQL.",
+            flush=True,
+        )
+        return payload
+
     save_detection_event(payload)
     print(f"[processor] Resultado salvo: {payload}", flush=True)
     return payload
